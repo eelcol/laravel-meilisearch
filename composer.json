@@ -1,0 +1,40 @@
+{
+    "name": "eelcol/laravel-meilisearch",
+    "description": "Simple Laravel wrapper to use Meilisearch",
+    "keywords": [
+        "laravel"
+    ],
+    "license": "MIT",
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^8|^9",
+        "illuminate/http": "^8|^9",
+        "meilisearch/meilisearch-php": "^0.22.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Eelcol\\LaravelMeilisearch\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Eelcol\\LaravelMeilisearch\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Eelcol\\LaravelMeilisearch\\LaravelMeilisearchServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require-dev": {
+        "orchestra/testbench": "^6.0",
+        "phpunit/phpunit": "^9.5"
+    }
+}
