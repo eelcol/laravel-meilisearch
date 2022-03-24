@@ -272,6 +272,15 @@ class MeilisearchQuery
         return $this->separate_query_for_metadata;
     }
 
+    public function when($expression, Closure $closure): self
+    {
+        if ($expression === true) {
+            $closure($this);
+        }
+
+        return $this;
+    }
+
     /**
      * @throws IndexNotSupplied
      */
@@ -288,5 +297,18 @@ class MeilisearchQuery
         }
 
         return $documents;
+    }
+
+    public function dd()
+    {
+        dd([
+            'query' => $this->getSearchQuery(),
+            'filters' => $this->getSearchFilters(),
+            'filters_for_metadata' => $this->getSearchFiltersForMetadata(),
+            'ordering' => $this->getSearchOrdering(),
+            'limit' => $this->getSearchLimit(),
+            'offset' => $this->getSearchOffset(),
+            'facets' => $this->getFacetsDistribution()
+        ]);
     }
 }
