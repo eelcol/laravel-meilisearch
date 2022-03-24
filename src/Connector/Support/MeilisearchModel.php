@@ -13,6 +13,11 @@ class MeilisearchModel implements ArrayAccess
         return $this->data[$property] ?? null;
     }
 
+    public function getData(): array
+    {
+        return $this->data;
+    }
+
     public function offsetSet($offset, $value)
     {
         // cannot set

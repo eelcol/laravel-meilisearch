@@ -108,6 +108,14 @@ class ParseToSearchFilters
 
     protected function escapeValue(mixed $value)
     {
+        if ($value === true) {
+            return 'true';
+        }
+
+        if ($value === false) {
+            return 'false';
+        }
+
         if (is_string($value)) {
             $value = "'" . $value . "'";
         }

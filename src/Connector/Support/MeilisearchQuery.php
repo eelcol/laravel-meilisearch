@@ -35,6 +35,8 @@ class MeilisearchQuery
 
     protected bool $separate_query_for_metadata = false;
 
+    protected string $castAs;
+
     public function __construct(string $index = '')
     {
         $this->index = $index;
@@ -43,6 +45,13 @@ class MeilisearchQuery
     public function index(string $index): self
     {
         $this->index = $index;
+
+        return $this;
+    }
+
+    public function castAs(string $class): self
+    {
+        $this->castAs = $class;
 
         return $this;
     }
@@ -272,6 +281,12 @@ class MeilisearchQuery
             throw new IndexNotSupplied();
         }
 
-        return Meilisearch::searchDocuments($this);
+        $documents = Meilisearch::searchDocuments($this);
+
+        if (isset($this->castAs)) {
+            $documents->castAs($this->castAs);
+        }
+
+        return $documents;
     }
 }

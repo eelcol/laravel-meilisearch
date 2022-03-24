@@ -71,6 +71,21 @@ class MeilisearchQueryTest extends TestCase
         $this->assertEquals(["('title' = 'iphone' OR 'title' = 'galaxy' OR 'title' = 'note')"], $filters);
     }
 
+    public function testWhereWithBooleans()
+    {
+        $filters = MeilisearchQuery::index('products')
+            ->where('available', '=', true)
+            ->getSearchFilters();
+
+        $this->assertEquals(["'available' = true"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->where('available', '=', false)
+            ->getSearchFilters();
+
+        $this->assertEquals(["'available' = false"], $filters);
+    }
+
     public function testItThrowsAnExceptionWhenUsingIncorrectBoolean()
     {
         $this->expectException(InvalidWhereBoolean::class);

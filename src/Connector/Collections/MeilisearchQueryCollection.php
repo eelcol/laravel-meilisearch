@@ -29,6 +29,15 @@ class MeilisearchQueryCollection extends MeilisearchCollection
         }, $hits));
     }
 
+    public function castAs(string $class): self
+    {
+        $this->data->transform(function ($item) use ($class) {
+            return new $class($item->getData());
+        });
+
+        return $this;
+    }
+
     public function setMetadata(?SearchResult $searchResult = null)
     {
         if (!is_null($searchResult)) {
