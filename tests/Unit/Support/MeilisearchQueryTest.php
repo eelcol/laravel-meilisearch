@@ -71,6 +71,21 @@ class MeilisearchQueryTest extends TestCase
         $this->assertEquals(["('title' = 'iphone' OR 'title' = 'galaxy' OR 'title' = 'note')"], $filters);
     }
 
+    public function testWhereMatches()
+    {
+        $filters = MeilisearchQuery::index('products')
+            ->where('title', 'MATCHES', ['iphone', 'galaxy', 'note'])
+            ->getSearchFilters();
+
+        $this->assertEquals(["('title' = 'iphone' AND 'title' = 'galaxy' AND 'title' = 'note')"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->whereMatches('title', ['iphone', 'galaxy', 'note'])
+            ->getSearchFilters();
+
+        $this->assertEquals(["('title' = 'iphone' AND 'title' = 'galaxy' AND 'title' = 'note')"], $filters);
+    }
+
     public function testWhereWithBooleans()
     {
         $filters = MeilisearchQuery::index('products')
@@ -92,6 +107,18 @@ class MeilisearchQueryTest extends TestCase
 
         MeilisearchQuery::index('products')
             ->where('title', '=', 'iphone', 'xyz');
+    }
+
+    public function testSimpleOrWhere()
+    {
+        $filters = MeilisearchQuery::index('products')
+            ->where(function ($q) {
+                $q->orWhere('category', '=', 'phones');
+                $q->orWhere('category', '=', 'computers');
+            })
+            ->getSearchFilters();
+
+        $this->assertEquals(["('category' = 'phones' OR 'category' = 'computers')"], $filters);
     }
 
     public function testSingleOrderBy()

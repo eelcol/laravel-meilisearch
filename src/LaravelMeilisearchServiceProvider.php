@@ -2,6 +2,8 @@
 
 namespace Eelcol\LaravelMeilisearch;
 
+use Eelcol\LaravelMeilisearch\Commands\CreateIndex;
+use Eelcol\LaravelMeilisearch\Commands\SetIndexSettings;
 use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Illuminate\Support\ServiceProvider;
@@ -36,5 +38,10 @@ class LaravelMeilisearchServiceProvider extends ServiceProvider
         $this->app->bind('meilisearch-query', function ($app) {
             return new MeilisearchQuery();
         });
+
+        $this->commands([
+            SetIndexSettings::class,
+            CreateIndex::class,
+        ]);
     }
 }

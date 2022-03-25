@@ -12,6 +12,7 @@ use Eelcol\LaravelMeilisearch\Exceptions\CannotOrderAfterRandomOrder;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexNotSupplied;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidOrdering;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidWhereBoolean;
+use Eelcol\LaravelMeilisearch\Exceptions\OrWhereTopLevelNotSupported;
 use Eelcol\LaravelMeilisearch\Exceptions\WhereInValuesShouldBeAnArray;
 use Illuminate\Support\Arr;
 
@@ -36,6 +37,8 @@ class MeilisearchQuery
     protected bool $separate_query_for_metadata = false;
 
     protected string $castAs;
+
+    protected bool $inside_where_closure = false;
 
     public function __construct(string $index = '')
     {
@@ -97,12 +100,13 @@ class MeilisearchQuery
         }
 
         if (is_a($column, Closure::class)) {
-            $query = $this->newQuery();
+            $query = $this->newQuery()->insideWhereClosure();
 
             $column($query);
 
             $this->wheres[] = [
-                'wheres' => $query->getWheres()
+                'wheres' => $query->getWheres(),
+                'boolean' => $boolean,
             ];
 
             return $this;
@@ -138,13 +142,39 @@ class MeilisearchQuery
         return $this;
     }
 
+    /**
+     * @param string $column
+     * @param array $values
+     * @return $this
+     * @throws InvalidWhereBoolean
+     * A document gets returned when the column matches at least 1 of the values
+     */
     public function whereIn(string $column, array $values): self
     {
         return $this->where($column, 'IN', $values);
     }
 
+    /**
+     * @param string $column
+     * @param array $values
+     * @return $this
+     * * A document gets returned when the column matches ALL values
+     */
+    public function whereMatches(string $column, array $values): self
+    {
+        return $this->where($column, 'MATCHES', $values);
+    }
+
+    /**
+     * @throws OrWhereTopLevelNotSupported
+     * @throws InvalidWhereBoolean
+     */
     public function orWhere(mixed $column, ?string $operator = null, mixed $value = null): self
     {
+        if (!$this->isInsideWhereClosure()) {
+            throw new OrWhereTopLevelNotSupported();
+        }
+
         return $this->where($column, $operator, $value, 'OR');
     }
 
@@ -220,6 +250,22 @@ class MeilisearchQuery
     protected function newQuery(): self
     {
         return new self($this->index);
+    }
+
+    /**
+     * @return $this
+     * Method to indicate the querybuilder is used inside a closure
+     */
+    public function insideWhereClosure(): self
+    {
+        $this->inside_where_closure = true;
+
+        return $this;
+    }
+
+    public function isInsideWhereClosure(): bool
+    {
+        return $this->inside_where_closure;
     }
 
     public function getIndex(): string
