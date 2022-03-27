@@ -310,6 +310,23 @@ MeilisearchQuery::index('products')
     ->get();
 ```
 
+### Paginate the results
+Just like using the Laravel querybuilder for the database, you can paginate the results coming from Meilisearch. Simply use the `paginate` method. When using this method, earlier calls to `limit` and `offset` are ignored.
+
+```
+MeilisearchQuery::index('products')
+    ->where('categories', '=', 'phones')
+    ->paginate(10);
+```
+
+Optionally supply the name of the query-parameter to use to fetch the current page. 'page' is used by default.
+
+```
+MeilisearchQuery::index('products')
+    ->where('categories', '=', 'phones')
+    ->paginate(10, 'pageNumber');
+```
+
 ### Sort the results
 #### In random order
 Out of the box, Meilisearch does not offer the option to randomly order documents. However, sometimes you want to display a few random products. To make this possible, this package adds this functionality. Be aware that the package will make a query to your Meilisearch database *for every random element*, plus 1 extra query. So if you want to fetch 100 documents in random order, there will be 101 queries made. Meilisearch queries are very fast, however when you make this kind of number of queries, it can still become slow. So I recommend to use this method only with a low number of documents (less than 10), or for example cache the results.

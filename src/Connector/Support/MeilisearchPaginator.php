@@ -59,7 +59,8 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
         $current_page = Paginator::resolveCurrentPage($this->page_name);
         $offset = ($this->per_page * ($current_page - 1));
 
-        // set offset
+        // set limit and offset
+        $this->query->limit($this->per_page);
         $this->query->offset($offset);
 
         // get results
