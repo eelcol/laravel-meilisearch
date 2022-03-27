@@ -3,6 +3,7 @@
 namespace Eelcol\LaravelMeilisearch\Connector\Support;
 
 use Closure;
+use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
 use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
 use Eelcol\LaravelMeilisearch\Connector\Support\Parsers\ParseToOrderBy;
 use Eelcol\LaravelMeilisearch\Connector\Support\Parsers\ParseToSearchFilters;
@@ -13,7 +14,6 @@ use Eelcol\LaravelMeilisearch\Exceptions\IndexNotSupplied;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidOrdering;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidWhereBoolean;
 use Eelcol\LaravelMeilisearch\Exceptions\OrWhereTopLevelNotSupported;
-use Eelcol\LaravelMeilisearch\Exceptions\WhereInValuesShouldBeAnArray;
 use Illuminate\Support\Arr;
 
 class MeilisearchQuery
@@ -330,7 +330,7 @@ class MeilisearchQuery
     /**
      * @throws IndexNotSupplied
      */
-    public function get()
+    public function get(): MeilisearchQueryCollection
     {
         if (empty($this->index)) {
             throw new IndexNotSupplied();
@@ -343,6 +343,14 @@ class MeilisearchQuery
         }
 
         return $documents;
+    }
+
+    public function paginate(int $per_page, string $page_name = 'page'): MeilisearchPaginator
+    {
+        return (new MeilisearchPaginator($this))
+            ->perPage($per_page)
+            ->pageName($page_name)
+            ->createPaginator();
     }
 
     public function dd()

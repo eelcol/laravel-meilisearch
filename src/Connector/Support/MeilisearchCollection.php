@@ -28,4 +28,9 @@ class MeilisearchCollection implements IteratorAggregate, Countable
     {
         return $this->data->count();
     }
+
+    public function all(): array
+    {
+        return $this->data->all();
+    }
 }
