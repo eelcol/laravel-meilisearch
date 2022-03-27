@@ -106,6 +106,7 @@ class Product extends Model
             'id' => $this->id,
             'title' => $this->title,
             'slug' => Str::slug($this->title),
+        ];
     }
 }
 ```
