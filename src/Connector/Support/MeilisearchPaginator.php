@@ -33,10 +33,14 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
         // first check if the method exists on the collection
         // otherwise call on the paginator
         if (method_exists($this->collection, $method)) {
-            return $this->collection->{$method}(...$arguments);
+            $this->collection->{$method}(...$arguments);
+
+            return $this;
         }
 
-        return $this->paginator->{$method}(...$arguments);
+        $this->paginator->{$method}(...$arguments);
+
+        return $this;
     }
 
     public function perPage(int $per_page): self
