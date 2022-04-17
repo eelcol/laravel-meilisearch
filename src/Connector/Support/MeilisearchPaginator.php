@@ -38,9 +38,15 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
             return $this;
         }
 
-        $this->paginator->{$method}(...$arguments);
+        $return = $this->paginator->{$method}(...$arguments);
 
-        return $this;
+        if (is_object($return) && get_class($return) == get_class($this->paginator)) {
+            // must be chainable
+            return $this;
+        }
+
+        // return return-value from method call
+        return $return;
     }
 
     public function perPage(int $per_page): self
