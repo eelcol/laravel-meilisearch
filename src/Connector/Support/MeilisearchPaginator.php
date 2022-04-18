@@ -98,28 +98,33 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
         return $this->paginator->count();
     }
 
-    public function offsetExists($key): bool
+    public function offsetExists(mixed $offset): bool
     {
-        return $this->paginator->has($key);
+        return $this->paginator->has($offset);
     }
 
-    public function offsetGet($key)
+    public function offsetGet(mixed $offset): mixed
     {
-        return $this->paginator->get($key);
+        return $this->paginator->get($offset);
     }
 
-    public function offsetSet($key, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
-        $this->paginator->put($key, $value);
+        $this->paginator->put($offset, $value);
     }
 
-    public function offsetUnset($key)
+    public function offsetUnset(mixed $offset): void
     {
-        $this->paginator->forget($key);
+        $this->paginator->forget($offset);
     }
 
-    public function getIterator()
+    public function getIterator(): \Traversable
     {
         return $this->paginator->getIterator();
+    }
+
+    public function getPaginator(): LengthAwarePaginator
+    {
+        return $this->paginator;
     }
 }
