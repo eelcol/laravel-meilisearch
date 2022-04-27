@@ -69,6 +69,12 @@ class MeilisearchQueryTest extends TestCase
             ->getSearchFilters();
 
         $this->assertEquals(["('title' = 'iphone' OR 'title' = 'galaxy' OR 'title' = 'note')"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->whereIn('title', [])
+            ->getSearchFilters();
+
+        $this->assertEquals([], $filters);
     }
 
     public function testWhereMatches()

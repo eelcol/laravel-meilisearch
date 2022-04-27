@@ -151,7 +151,11 @@ class MeilisearchQuery
      */
     public function whereIn(string $column, array $values): self
     {
-        return $this->where($column, 'IN', $values);
+        if (count($values) > 0) {
+            $this->where($column, 'IN', $values);
+        }
+
+        return $this;
     }
 
     /**
