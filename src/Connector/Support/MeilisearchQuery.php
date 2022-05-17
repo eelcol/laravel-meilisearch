@@ -85,6 +85,11 @@ class MeilisearchQuery
         return $this;
     }
 
+    public function getOffset(): int
+    {
+        return $this->offset;
+    }
+
     /**
      * @param \Closure|string $column
      * @param mixed $operator
