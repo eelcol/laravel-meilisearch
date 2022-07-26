@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchTask|null syncSortableAttributes(string $index, array $attribtues)
  * @method static MeilisearchHealth getHealth()
  * @method static MeilisearchTask getTask(int $taskId)
+ * @method static string getVersion()
  *
  * @see MeilisearchConnector
  */

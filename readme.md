@@ -11,6 +11,9 @@ This package deals with these kind of situations. You decide which information t
 
 When using this package, you should determine yourself when and which data you sent to Meilisearch. So if you automatically want to sent models to Meilisearch after a model is saved or created, Laravel Scout might be a better solution.
 
+## Compatibility with Meilisearch
+Currently, this package supports Meilisearch up to version 0.27. Version 0.28 of Meilisearch introduced some breaking changes. A new version of this package compatible with 0.28 will be released soon.
+
 ## Installation
 ```
 composer require eelcol/laravel-meilisearch

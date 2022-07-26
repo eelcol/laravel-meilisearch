@@ -272,6 +272,11 @@ class MeilisearchConnector
         return new MeilisearchTask($this->client->getTask($taskId));
     }
 
+    public function getVersion(): string
+    {
+        return $this->client->version()['pkgVersion'];
+    }
+
     public function getStats(?string $index = null)
     {
         if ($index) {
