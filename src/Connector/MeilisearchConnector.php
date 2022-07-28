@@ -5,27 +5,69 @@ namespace Eelcol\LaravelMeilisearch\Connector;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchDocumentsCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchIndexCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
+use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchTasksCollection;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchDocument;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchHealth;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchIndexItem;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Eelcol\LaravelMeilisearch\Exceptions\NotEnoughDocumentsToOrderRandomly;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
-use MeiliSearch\Client;
+use Illuminate\Support\Facades\Http;
 
 class MeilisearchConnector
 {
-    protected Client $client;
+    protected PendingRequest $http;
 
     public function __construct(array $connection_data)
     {
-        $this->client = new Client($connection_data['host'], $connection_data['key']);
+        $this->http = Http::baseUrl($connection_data['host'])->withToken($connection_data['key']);
+    }
+
+    /**
+     * @param string $path
+     * @param array<string, mixed> $query
+     * @return MeilisearchResponse
+     */
+    protected function request(string $path, array $query = []): MeilisearchResponse
+    {
+        $response = $this->http->get($path, $query);
+
+        return new MeilisearchResponse($response);
+    }
+
+    protected function postRequest(string $path, array $options = []): MeilisearchResponse
+    {
+        $response = $this->http->post($path, $options);
+
+        return new MeilisearchResponse($response);
+    }
+
+    protected function putRequest(string $path, array $options = []): MeilisearchResponse
+    {
+        $response = $this->http->put($path, $options);
+
+        return new MeilisearchResponse($response);
+    }
+
+    protected function patchRequest(string $path, array $options = []): MeilisearchResponse
+    {
+        $response = $this->http->patch($path, $options);
+
+        return new MeilisearchResponse($response);
+    }
+
+    protected function deleteRequest(string $path): MeilisearchResponse
+    {
+        $response = $this->http->delete($path);
+
+        return new MeilisearchResponse($response);
     }
 
     public function getAllIndexes(): MeilisearchIndexCollection
     {
-        return new MeilisearchIndexCollection($this->client->getAllIndexes());
+        return new MeilisearchIndexCollection($this->request("indexes"));
     }
 
     public function indexExists(string $index): bool
@@ -43,14 +85,17 @@ class MeilisearchConnector
     public function createIndex(string $index, string $primaryKey = 'id'): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->client->createIndex($index, ['primaryKey' => $primaryKey])
+            $this->postRequest("indexes", [
+                'uid' => $index,
+                'primaryKey' => $primaryKey
+            ])
         );
     }
 
     public function deleteIndex(string $index): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->client->deleteIndex($index)
+            $this->deleteRequest("indexes/" . $index)
         );
     }
 
@@ -63,7 +108,7 @@ class MeilisearchConnector
         $data = $this->transformData($data);
 
         return new MeilisearchTask(
-            $this->client->index($index)->addDocuments([$data])
+            $this->postRequest("indexes/".$index."/documents", [$data])
         );
     }
 
@@ -80,21 +125,27 @@ class MeilisearchConnector
         }
 
         return new MeilisearchTask(
-            $this->client->index($index)->addDocuments($data)
+            $this->postRequest("indexes/".$index."/documents", $data)
         );
     }
 
+    /**
+     * @param string $index
+     * @param array<string, mixed> $query
+     * @return MeilisearchDocumentsCollection
+     */
     public function getDocuments(string $index, array $query = []): MeilisearchDocumentsCollection
     {
         return new MeilisearchDocumentsCollection(
-            $this->client->index($index)->getDocuments($query)
+            $index,
+            $this->request("indexes/".$index."/documents", $query)
         );
     }
 
     public function getDocument(string $index, int $id): MeilisearchDocument
     {
         return new MeilisearchDocument(
-            $this->client->index($index)->getDocument($id)
+            $this->request("indexes/".$index."/documents/".$id)
         );
     }
 
@@ -119,11 +170,13 @@ class MeilisearchConnector
             // so you still want to know how many products have the color 'red' or 'yellow' etc
             // in that case, we need to make an extra query for this meta-data
             // and skip some filters
-            $meta_result = $this->client->index($query->getIndex())->search($query->getSearchQuery(), [
+            $meta_result = $this->http->post("indexes/".$query->getIndex()."/search", [
+                'q' => $query->getSearchQuery()
+                ] + [
                 'filter' => $query->getSearchFiltersForMetadata(),
                 'limit' => $query->getSearchLimit(),
                 'offset' => $query->getSearchOffset(),
-                'facetsDistribution' => $query->getFacetsDistribution(),
+                'facets' => $query->getFacetsDistribution(),
                 'sort' => $query->getSearchOrdering()
             ]);
         }
@@ -132,11 +185,13 @@ class MeilisearchConnector
             return $this->searchDocumentsInRandomOrder($query);
         }
 
-        $response = $this->client->index($query->getIndex())->search($query->getSearchQuery(), [
+        $response = $this->http->post("indexes/".$query->getIndex()."/search", [
+                'q' => $query->getSearchQuery()
+            ] + [
             'filter' => $query->getSearchFilters(),
             'limit' => $query->getSearchLimit(),
             'offset' => $query->getSearchOffset(),
-            'facetsDistribution' => $query->getFacetsDistribution(),
+            'facets' => $query->getFacetsDistribution(),
             'sort' => $query->getSearchOrdering()
         ]);
 
@@ -182,18 +237,18 @@ class MeilisearchConnector
     public function updateFilterableAttributes(string $index, array $attributes): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->client->index($index)->updateFilterableAttributes($attributes)
+            $this->putRequest("indexes/".$index."/settings/filterable-attributes", $attributes)
         );
     }
 
-    public function getFilterableAttributes(string $index): array
+    public function getFilterableAttributes(string $index): MeilisearchResponse
     {
-        return $this->client->index($index)->getFilterableAttributes();
+        return $this->request("indexes/".$index."/settings/filterable-attributes");
     }
 
     public function syncFilterableAttributes(string $index, array $attributes): ?MeilisearchTask
     {
-        $current_attributes = $this->getFilterableAttributes($index);
+        $current_attributes = $this->getFilterableAttributes($index)->getData();
 
         array_multisort($attributes);
         array_multisort($current_attributes);
@@ -208,18 +263,18 @@ class MeilisearchConnector
     public function updateSearchableAttributes(string $index, array $attributes): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->client->index($index)->updateSearchableAttributes($attributes)
+            $this->putRequest("indexes/".$index."/settings/searchable-attributes", $attributes)
         );
     }
 
-    public function getSearchableAttributes(string $index): array
+    public function getSearchableAttributes(string $index): MeilisearchResponse
     {
-        return $this->client->index($index)->getSearchableAttributes();
+        return $this->request("indexes/".$index."/settings/searchable-attributes");
     }
 
     public function syncSearchableAttributes(string $index, array $attributes): ?MeilisearchTask
     {
-        $current_attributes = $this->getSearchableAttributes($index);
+        $current_attributes = $this->getSearchableAttributes($index)->getData();
 
         array_multisort($attributes);
         array_multisort($current_attributes);
@@ -231,21 +286,21 @@ class MeilisearchConnector
         return null;
     }
 
-    public function getSortableAttributes(string $index): array
+    public function getSortableAttributes(string $index): MeilisearchResponse
     {
-        return $this->client->index($index)->getSortableAttributes();
+        return $this->request("indexes/".$index."/settings/sortable-attributes");
     }
 
     public function updateSortableAttributes(string $index, array $attributes): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->client->index($index)->updateSortableAttributes($attributes)
+            $this->putRequest("indexes/".$index."/settings/sortable-attributes", $attributes)
         );
     }
 
     public function syncSortableAttributes(string $index, array $attributes): ?MeilisearchTask
     {
-        $current_attributes = $this->getSortableAttributes($index);
+        $current_attributes = $this->getSortableAttributes($index)->getData();
 
         array_multisort($attributes);
         array_multisort($current_attributes);
@@ -257,33 +312,55 @@ class MeilisearchConnector
         return null;
     }
 
-    public function getHealth(): MeilisearchHealth
+    public function setMaxTotalHits(string $index, int $max_total_hits): MeilisearchTask
     {
-        return new MeilisearchHealth($this->client->health());
+        return new MeilisearchTask(
+            $this->patchRequest("indexes/".$index."/settings/pagination", [
+                'maxTotalHits' => $max_total_hits
+            ])
+        );
     }
 
-    public function getTasks()
+    public function setMaxValuesPerFacet(string $index, int $max_values_per_facet): MeilisearchTask
     {
-        return $this->client->getTasks();
+        return new MeilisearchTask(
+            $this->patchRequest("indexes/".$index."/settings/faceting", [
+                'maxValuesPerFacet' => $max_values_per_facet
+            ])
+        );
+    }
+
+    public function getHealth(): MeilisearchHealth
+    {
+        return new MeilisearchHealth(
+            $this->request("health")
+        );
+    }
+
+    public function getTasks(): MeilisearchTasksCollection
+    {
+        return new MeilisearchTasksCollection(
+            $this->request("tasks")
+        );
     }
 
     public function getTask(int $taskId): MeilisearchTask
     {
-        return new MeilisearchTask($this->client->getTask($taskId));
+        return new MeilisearchTask($this->request("tasks/" . $taskId));
     }
 
     public function getVersion(): string
     {
-        return $this->client->version()['pkgVersion'];
+        return $this->request("version")['pkgVersion'];
     }
 
-    public function getStats(?string $index = null)
+    public function getStats(?string $index = null): MeilisearchResponse
     {
         if ($index) {
-            return $this->client->index($index)->stats();
+            return $this->request("indexes/".$index."/stats");
         }
 
-        return $this->client->stats();
+        return $this->request("stats");
     }
 
     protected function transformData(mixed $data): array

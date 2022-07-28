@@ -15,8 +15,16 @@ When using this package, you should determine yourself when and which data you s
 Currently, this package supports Meilisearch up to version 0.27. Version 0.28 of Meilisearch introduced some breaking changes. A new version of this package compatible with 0.28 will be released soon.
 
 ## Installation
+When using Meilisearch up to version 0.27, use the following command:
+
 ```
-composer require eelcol/laravel-meilisearch
+composer require eelcol/laravel-meilisearch:<=1
+```
+
+When using Meilisearch version 0.28:
+
+```
+composer require eelcol/laravel-meilisearch:^1.0
 ```
 
 ### Setup .env
@@ -134,7 +142,7 @@ Meilisearch::addDocuments('products', $products);
 ```
 
 ### Retrieve data
-Documents of an index can be retrieved using the `getDocuments` method. When you want to apply filters, this can also be applied using this method. However, I recommend using the query builder when you want to apply filters or do sorting.
+Documents of an index can be retrieved using the `getDocuments` method. When you want to apply filters, the query builder can be used. The data is automaticly paginated.
 
 ```
 $documents = Meilisearch::getDocuments('products');

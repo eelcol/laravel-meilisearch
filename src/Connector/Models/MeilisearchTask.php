@@ -3,19 +3,28 @@
 namespace Eelcol\LaravelMeilisearch\Connector\Models;
 
 use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
+use Eelcol\LaravelMeilisearch\Connector\MeilisearchResponse;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchModel;
+use Eelcol\LaravelMeilisearch\Connector\Traits\HandlesErrors;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexAlreadyExists;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexNotFound;
 use Eelcol\LaravelMeilisearch\Exceptions\MissingDocumentId;
 
 class MeilisearchTask extends MeilisearchModel
 {
-    /**
-     * @param array{uid: int, indexUid: string, status: string, type: string, details?: array, error?: array, duration?: string|null, enqueuedAt: string, startedAt: string, finishedAt: string} $data
-     */
-    public function __construct(array $data)
+    use HandlesErrors;
+
+    public function __construct(?MeilisearchResponse $response = null)
     {
-        $this->data = $data;
+        if (!is_null($response)) {
+            /** @var array{taskUid?: int, uid?: int, indexUid: string, status: string, type: string, details?: array, error?: array, duration?: string|null, enqueuedAt: string, startedAt: string, finishedAt: string} $this- >data */
+            $this->data = $response->getData();
+        }
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return (new self())->setData($data);
     }
 
     /**
@@ -25,16 +34,12 @@ class MeilisearchTask extends MeilisearchModel
      */
     public function checkStatus(): self
     {
-        $status = Meilisearch::getTask($this->data['uid']);
+        $status = Meilisearch::getTask($this->getUid());
 
         $this->data = $status->getData();
 
-        if ($this->isFailed() && $this->isErrorIndexAlreadyExists()) {
-            throw new IndexAlreadyExists($this->getErrorMessage());
-        } elseif ($this->isFailed() && $this->isErrorIndexNotFound()) {
-            throw new IndexNotFound($this->getErrorMessage());
-        } elseif ($this->isFailed() && $this->isErrorMissingDocumentId()) {
-            throw new MissingDocumentId($this->getErrorMessage());
+        if ($this->isFailed()) {
+            $this->checkForErrors();
         }
 
         return $this;
@@ -43,6 +48,13 @@ class MeilisearchTask extends MeilisearchModel
     public function getData(): array
     {
         return $this->data;
+    }
+
+    public function setData(array $data): self
+    {
+        $this->data = $data;
+
+        return $this;
     }
 
     public function isEnqueued(): bool
@@ -72,7 +84,7 @@ class MeilisearchTask extends MeilisearchModel
 
     public function getUid(): int
     {
-        return $this->data['uid'];
+        return $this->data['taskUid'] ?? $this->data['uid'];
     }
 
     public function getIndexUid(): string
@@ -93,43 +105,5 @@ class MeilisearchTask extends MeilisearchModel
     public function getDetails(): mixed
     {
         return $this->data['details'] ?? null;
-    }
-
-    public function getError(): mixed
-    {
-        return $this->data['error'] ?? null;
-    }
-
-    public function getErrorMessage(): mixed
-    {
-        if (is_null($this->getError())) {
-            return null;
-        }
-
-        return $this->getError()['message'] ?? null;
-    }
-
-    public function getErrorCode(): mixed
-    {
-        if (is_null($this->getError())) {
-            return null;
-        }
-
-        return $this->getError()['code'] ?? null;
-    }
-
-    public function isErrorIndexAlreadyExists(): bool
-    {
-        return $this->getErrorCode() == 'index_already_exists';
-    }
-
-    public function isErrorIndexNotFound(): bool
-    {
-        return $this->getErrorCode() == 'index_not_found';
-    }
-
-    public function isErrorMissingDocumentId(): bool
-    {
-        return $this->getErrorCode() == 'missing_document_id';
     }
 }

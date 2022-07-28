@@ -8,14 +8,13 @@ use MeiliSearch\Endpoints\Indexes;
 
 class MeilisearchIndexItem extends MeilisearchModel
 {
-    public function __construct(Indexes $data)
-    {
-        $this->data = [
-            'uid' => $data->getUid(),
-            'primaryKey' => $data->getPrimaryKey(),
-            'createdAt' => $data->getCreatedAt(),
-            'updatedAt' => $data->getUpdatedAt()
-        ];
+    /**
+     * @param array{uid: string, createdAt: string, updatedAt: string, primaryKey: string} $data
+     */
+    public function __construct(
+        protected array $data
+    ) {
+        //
     }
 
     public function getUid(): string
@@ -30,11 +29,11 @@ class MeilisearchIndexItem extends MeilisearchModel
 
     public function getCreatedAt(): DateTime
     {
-        return $this->data['createdAt'];
+        return self::parseDate($this->data['createdAt']);
     }
 
     public function getUpdatedAt(): DateTime
     {
-        return $this->data['updatedAt'];
+        return self::parseDate($this->data['updatedAt']);
     }
 }

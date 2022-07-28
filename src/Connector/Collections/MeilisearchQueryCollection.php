@@ -4,24 +4,24 @@ namespace Eelcol\LaravelMeilisearch\Connector\Collections;
 
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchDocument;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchCollection;
+use Illuminate\Http\Client\Response;
 use IteratorAggregate;
-use MeiliSearch\Search\SearchResult;
 
 /**
  * @implements IteratorAggregate<MeilisearchDocument>
  */
 class MeilisearchQueryCollection extends MeilisearchCollection
 {
-    protected SearchResult $result;
+    protected Response $result;
 
-    protected SearchResult $metadata;
+    protected Response $metadata;
 
-    public function __construct(?SearchResult $data = null)
+    public function __construct(?Response $data = null)
     {
         $hits = [];
         if ($data) {
-            $hits = $data->getHits();
             $this->result = $data;
+            $hits = $data->json('hits');
         }
 
         $this->data = collect(array_map(function ($item) {
@@ -38,7 +38,7 @@ class MeilisearchQueryCollection extends MeilisearchCollection
         return $this;
     }
 
-    public function setMetadata(?SearchResult $searchResult = null)
+    public function setMetadata(?Response $searchResult = null)
     {
         if (!is_null($searchResult)) {
             $this->metadata = $searchResult;
@@ -62,17 +62,17 @@ class MeilisearchQueryCollection extends MeilisearchCollection
             return null;
         }
 
-        return $this->result->getNbHits();
+        return $this->result->json('estimatedTotalHits');
     }
 
     public function getFacetsDistribution(): ?array
     {
         if (isset($this->metadata)) {
-            return $this->metadata->getFacetsDistribution();
+            return $this->metadata->json('facetDistribution');
         }
 
         if (isset($this->result)) {
-            return $this->result->getFacetsDistribution();
+            return $this->result->json('facetDistribution');
         }
 
         return null;

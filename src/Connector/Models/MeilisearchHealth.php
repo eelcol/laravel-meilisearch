@@ -2,13 +2,14 @@
 
 namespace Eelcol\LaravelMeilisearch\Connector\Models;
 
+use Eelcol\LaravelMeilisearch\Connector\MeilisearchResponse;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchModel;
 
 class MeilisearchHealth extends MeilisearchModel
 {
-    public function __construct(array $data)
+    public function __construct(MeilisearchResponse $data)
     {
-        $this->data = $data;
+        $this->data = $data->getData();
     }
 
     public function getStatus()

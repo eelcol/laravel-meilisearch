@@ -34,6 +34,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchTask updateSortableAttributes(string $index, array $attributes)
  * @method static array getSortableAttributes(string $index)
  * @method static MeilisearchTask|null syncSortableAttributes(string $index, array $attribtues)
+ * @method static MeilisearchTask setMaxTotalHits(string $index, int $max_total_hits)
+ * @method static MeilisearchTask setMaxValuesPerFacet(string $index, int $max_values_per_facet)
  * @method static MeilisearchHealth getHealth()
  * @method static MeilisearchTask getTask(int $taskId)
  * @method static string getVersion()

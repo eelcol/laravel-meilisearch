@@ -71,6 +71,16 @@ class SetIndexSettings extends Command
             Meilisearch::syncFilterableAttributes($index, ($config['filters'] ?? []));
             Meilisearch::syncSearchableAttributes($index, ($config['search'] ?? []));
             Meilisearch::syncSortableAttributes($index, ($config['sortable'] ?? []));
+
+            // set the maximum number of total hits
+            // by default: 10.000
+            $max_total_hits = $config['max_total_hits'] ?? 10000;
+            Meilisearch::setMaxTotalHits($index, $max_total_hits);
+
+            // set the maximum facet values
+            // by default 1.000
+            $max_facet_values = $config['max_values_per_facet'] ?? 1000;
+            Meilisearch::setMaxValuesPerFacet($index, $max_facet_values);
         }
 
         return 0;
