@@ -205,12 +205,13 @@ class MeilisearchConnector
     {
         // first load the total number of documents in this index
         // applying the requested filters
-        $response = $this->client->index($query->getIndex())->search($query->getSearchQuery(), [
+        $response = $this->postRequest("indexes/".$query->getIndex()."/search", [
+            'q' => $query->getSearchQuery()
+        ] + [
             'filter' => $query->getSearchFilters()
         ]);
 
-        $rawResponse = $response->getRaw();
-        $num_documents = $rawResponse['nbHits'];
+        $num_documents = $response['estimatedTotalHits'];
 
         if ($num_documents < $query->getSearchLimit()) {
             throw new NotEnoughDocumentsToOrderRandomly("Only " . $num_documents . " found.");

@@ -277,7 +277,11 @@ MeilisearchQuery::index('products')
     ->get();
 ```
 
-In the current version of Meilisearch, facets of an attribute are not returned when you are filtering on an attribute. For example, when you run the above query, the colors `grey`, `silver`, `gold`, `yellow` are returned. Next, you only want to display the products with a `yellow` color. So you apply a filter:
+### Disjunctive facets distribution
+
+In the current version of Meilisearch, facets of an attribute are not returned when you are filtering on an attribute. See the following discussion: https://github.com/meilisearch/product/discussions/187
+
+For example, when you run the above query, the colors `grey`, `silver`, `gold`, `yellow` are returned. Next, you only want to display the products with a `yellow` color. So you apply a filter:
 
 ```
 MeilisearchQuery::index('products')

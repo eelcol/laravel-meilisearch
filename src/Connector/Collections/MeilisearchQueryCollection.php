@@ -25,7 +25,7 @@ class MeilisearchQueryCollection extends MeilisearchCollection
         }
 
         $this->data = collect(array_map(function ($item) {
-            return new MeilisearchDocument($item);
+            return MeilisearchDocument::fromArray($item);
         }, $hits));
     }
 
