@@ -68,13 +68,13 @@ All the functionalities that are mentioned in the Meilisearch docs are available
 
 ### Insert data
 To insert a document in the index `products`, you can do 1 of the following:
-```
+```php
 Meilisearch::addDocument('products', [
     'id' => 1,
     'title' => 'iPhone SE'
 ]);
 ```
-```
+```php
 Meilisearch::addDocuments('products', [
     [
         'id' => 1,
@@ -88,7 +88,7 @@ Meilisearch::addDocuments('products', [
 ```
 
 You can also directly insert a model or collection. A model gets converted to an array. In order to do this, the package check if the following methods exists on the object, in the following order:
-```
+```php
 - toMeilisearch()
 - toSearchableArray()
 - toArray()
@@ -96,7 +96,7 @@ You can also directly insert a model or collection. A model gets converted to an
 
 A `Product` model for example, can look like the following:
 
-```
+```php
 <?php
 
 namespace App\Models;
@@ -123,7 +123,7 @@ class Product extends Model
 ```
 
 The model can be inserted like this:
-```
+```php
 $product = App\Models\Product::find(1);
 Meilisearch::addDocument('products', $product);
 
@@ -136,7 +136,7 @@ Meilisearch::addDocument('products', $product);
 ```
 
 A collection can also be directly inserted:
-```
+```php
 $products = App\Models\Product::all();
 Meilisearch::addDocuments('products', $products);
 ```
@@ -144,7 +144,7 @@ Meilisearch::addDocuments('products', $products);
 ### Retrieve data
 Documents of an index can be retrieved using the `getDocuments` method. When you want to apply filters, the query builder can be used. The data is automaticly paginated.
 
-```
+```php
 $documents = Meilisearch::getDocuments('products');
 ```
 
@@ -153,7 +153,7 @@ If you want to apply filtering or sorting, I recommend using the query builder. 
 
 #### Filter on attribute
 Simple filtering can be done using the `where` method:
-```
+```php
 $documents = MeilisearchQuery::index('products')
     ->where('title', '=', 'iPhone SE')
     ->get();
@@ -164,7 +164,7 @@ $documents = MeilisearchQuery::index('products')
 ```
 
 Multiple `wheres` can also be combined:
-```
+```php
 $documents = MeilisearchQuery::index('products')
     ->where('title', '=', 'iPhone SE')
     ->where('price', '<', 100)
@@ -173,7 +173,7 @@ $documents = MeilisearchQuery::index('products')
 
 #### Filter with 'or'
 Currently, it is not possible to filter with 'OR' on the top-level. If you want to filter with 'OR', you have to create a 'where-group' first. The following call will generate an error:
-```
+```php
 $documents = MeilisearchQuery::index('products')
     ->where('title', '=', 'iPhone SE')
     ->orWhere('title', '=', 'Samsung Galaxy')
@@ -181,7 +181,7 @@ $documents = MeilisearchQuery::index('products')
 ```
 
 The following code will work however:
-```
+```php
 $documents = MeilisearchQuery::index('products')
     ->where(function ($q) {
         $q->where('title', '=', 'iPhone SE');
@@ -192,7 +192,7 @@ $documents = MeilisearchQuery::index('products')
 
 This is because of the way Meilisearch filters work, and how this package renders the filters. It also prevents possible issues when combining 'AND' and 'OR' statements. For example, the following query could return unexpected results:
 
-```
+```php
 $documents = MeilisearchQuery::index('products')
     ->where('title', '=', 'iPhone SE')
     ->orWhere('title', '=', 'Samsung Galaxy')
@@ -201,7 +201,7 @@ $documents = MeilisearchQuery::index('products')
 ```
 
 Should this query be:
-```
+```sql
 - (title = 'iPhone SE' OR title = 'Samsung Galaxy') AND price < 100
 - title = 'iPhone SE' OR (title = 'Samsung Galaxy' AND price < 100)
 - etc...
@@ -211,7 +211,7 @@ So for now, when using an 'OR' statement, you should start a `where`-group first
 
 #### Where in
 This works best with arrays. For example, you have a product with multiple categories:
-```
+```php
 [
     'id' => 1,
     'title' => 'iPhone SE',
@@ -230,7 +230,7 @@ This works best with arrays. For example, you have a product with multiple categ
 ]
 ```
 This data can be queried:
-```
+```php
 MeilisearchQuery::index('products')
     ->whereIn('categories', ['phones', 'iphones'])
     ->get();
@@ -241,7 +241,7 @@ The `whereIn` method will check if *at least 1 of the values* is present on the 
 #### Where matches
 The `whereIn` method will check if at least 1 of the values is present on the model. The `whereMatches` method will check if *ALL* values are present on the model:
 
-```
+```php
 // this query will return both iPhone SE and Samsung Galaxy
 MeilisearchQuery::index('products')
     ->whereMatches('categories', ['phones', 'smartphones'])
@@ -261,7 +261,7 @@ MeilisearchQuery::index('products')
 ### Using facets
 Columns that are attributed as `filterable` can be used in facets. The querybuilder will return these facets with a product-count attached to it. The facets can be defined by using the `setFacets` or `addFacet` methods:
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->setFacets([
@@ -283,7 +283,7 @@ In the current version of Meilisearch, facets of an attribute are not returned w
 
 For example, when you run the above query, the colors `grey`, `silver`, `gold`, `yellow` are returned. Next, you only want to display the products with a `yellow` color. So you apply a filter:
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->where('color', '=', 'yellow')
@@ -298,7 +298,7 @@ However when you do this, the facet `color` will now only return `yellow`. That 
 
 When using the `keepFacetsInMetadata` method, the package will create 2 Meilisearch queries. 1 query with all the filters applied to fetch the products, and 1 query with some of the filters to fetch the metadata (facets). So the above example can be changed to the following:
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->keepFacetsInMetadata(function ($q) {
@@ -318,7 +318,7 @@ Be aware that this method will generate another query. Because most of the times
 ### Limits and offsets
 Limits and offsets can easily be added to the query. The following query will return 10 results, starting from the 20th result:
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->limit(10)
@@ -329,7 +329,7 @@ MeilisearchQuery::index('products')
 ### Paginate the results
 Just like using the Laravel querybuilder for the database, you can paginate the results coming from Meilisearch. Simply use the `paginate` method. When using this method, earlier calls to `limit` and `offset` are ignored.
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->paginate(10);
@@ -337,7 +337,7 @@ MeilisearchQuery::index('products')
 
 Optionally supply the name of the query-parameter to use to fetch the current page. 'page' is used by default.
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->paginate(10, 'pageNumber');
@@ -347,7 +347,7 @@ MeilisearchQuery::index('products')
 #### In random order
 Out of the box, Meilisearch does not offer the option to randomly order documents. However, sometimes you want to display a few random products. To make this possible, this package adds this functionality. Be aware that the package will make a query to your Meilisearch database *for every random element*, plus 1 extra query. So if you want to fetch 100 documents in random order, there will be 101 queries made. Meilisearch queries are very fast, however when you make this kind of number of queries, it can still become slow. So I recommend to use this method only with a low number of documents (less than 10), or for example cache the results.
 
-```
+```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->inRandomOrder()
