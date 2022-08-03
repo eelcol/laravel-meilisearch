@@ -14,6 +14,14 @@ return [
     // only these columns can be used inside orderBy() methods
     'sortable' => [],
 
+    // Built-in ranking rules that ensure relevancy in search results.
+    // Contains the ranking rules sorted by order of importance
+    // (arranged from the most important rule to the least important rule).
+    // The sorting order can be appended, for example 'created_at:desc'.
+    // Meilisearche's default ranking rules are applied:
+    // https://docs.meilisearch.com/learn/configuration/settings.html#ranking-rules
+    'ranking' => ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness'],
+
     // set the total number of maximum hits
     // Meilisearch sets this automatically to 1.000
     // If you make a search request to this index, and that search contains over 1.000 documents

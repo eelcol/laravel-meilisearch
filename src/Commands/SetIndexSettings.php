@@ -43,20 +43,20 @@ class SetIndexSettings extends Command
 
         foreach ($files as $file) {
             $filename = $file->getFilename();
-            $index = str_replace("." . $file->getExtension(), "", $filename);
+            $index = str_replace('.'.$file->getExtension(), '', $filename);
 
             // require the file
             $config = File::getRequire($file->getRealPath());
 
             // first create the index if it does not exist yet
-            if (!Meilisearch::indexExists($index)) {
+            if (! Meilisearch::indexExists($index)) {
                 $task = Meilisearch::createIndex($index, $config['primaryKey']);
 
                 // now wait till the task is finished
                 $task->checkStatus();
                 while ($task->isNotSucceeded()) {
                     if ($task->isFailed()) {
-                        trigger_error("Failed creating index!");
+                        trigger_error('Failed creating index!');
                     }
 
                     // wait 1 second
@@ -64,13 +64,14 @@ class SetIndexSettings extends Command
                     $task->checkStatus();
                 }
 
-                dump("Index '" . $index . "' created...");
+                dump("Index '".$index."' created...");
             }
 
             // sync filterable, searchable and sortable attributes
             Meilisearch::syncFilterableAttributes($index, ($config['filters'] ?? []));
             Meilisearch::syncSearchableAttributes($index, ($config['search'] ?? []));
             Meilisearch::syncSortableAttributes($index, ($config['sortable'] ?? []));
+            Meilisearch::syncRankingRules($index, ($config['ranking'] ?? []));
 
             // set the maximum number of total hits
             // by default: 10.000

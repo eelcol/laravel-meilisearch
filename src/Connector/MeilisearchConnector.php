@@ -26,8 +26,8 @@ class MeilisearchConnector
     }
 
     /**
-     * @param string $path
-     * @param array<string, mixed> $query
+     * @param  string  $path
+     * @param  array<string, mixed>  $query
      * @return MeilisearchResponse
      */
     protected function request(string $path, array $query = []): MeilisearchResponse
@@ -67,7 +67,7 @@ class MeilisearchConnector
 
     public function getAllIndexes(): MeilisearchIndexCollection
     {
-        return new MeilisearchIndexCollection($this->request("indexes"));
+        return new MeilisearchIndexCollection($this->request('indexes'));
     }
 
     public function indexExists(string $index): bool
@@ -85,9 +85,9 @@ class MeilisearchConnector
     public function createIndex(string $index, string $primaryKey = 'id'): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->postRequest("indexes", [
+            $this->postRequest('indexes', [
                 'uid' => $index,
-                'primaryKey' => $primaryKey
+                'primaryKey' => $primaryKey,
             ])
         );
     }
@@ -95,26 +95,26 @@ class MeilisearchConnector
     public function deleteIndex(string $index): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->deleteRequest("indexes/" . $index)
+            $this->deleteRequest('indexes/'.$index)
         );
     }
 
     /**
-     * @param string $index
-     * @param array|object $data
+     * @param  string  $index
+     * @param  array|object  $data
      */
     public function addDocument(string $index, mixed $data): MeilisearchTask
     {
         $data = $this->transformData($data);
 
         return new MeilisearchTask(
-            $this->postRequest("indexes/".$index."/documents", [$data])
+            $this->postRequest('indexes/'.$index.'/documents', [$data])
         );
     }
 
     /**
-     * @param string $index
-     * @param array|object $data
+     * @param  string  $index
+     * @param  array|object  $data
      */
     public function addDocuments(string $index, mixed $data): MeilisearchTask
     {
@@ -125,27 +125,27 @@ class MeilisearchConnector
         }
 
         return new MeilisearchTask(
-            $this->postRequest("indexes/".$index."/documents", $data)
+            $this->postRequest('indexes/'.$index.'/documents', $data)
         );
     }
 
     /**
-     * @param string $index
-     * @param array<string, mixed> $query
+     * @param  string  $index
+     * @param  array<string, mixed>  $query
      * @return MeilisearchDocumentsCollection
      */
     public function getDocuments(string $index, array $query = []): MeilisearchDocumentsCollection
     {
         return new MeilisearchDocumentsCollection(
             $index,
-            $this->request("indexes/".$index."/documents", $query)
+            $this->request('indexes/'.$index.'/documents', $query)
         );
     }
 
     public function getDocument(string $index, int $id): MeilisearchDocument
     {
         return new MeilisearchDocument(
-            $this->request("indexes/".$index."/documents/".$id)
+            $this->request('indexes/'.$index.'/documents/'.$id)
         );
     }
 
@@ -155,8 +155,9 @@ class MeilisearchConnector
     }
 
     /**
-     * @param MeilisearchQuery $query
+     * @param  MeilisearchQuery  $query
      * @return MeilisearchQueryCollection
+     *
      * @throws NotEnoughDocumentsToOrderRandomly
      */
     public function searchDocuments(MeilisearchQuery $query): MeilisearchQueryCollection
@@ -170,14 +171,14 @@ class MeilisearchConnector
             // so you still want to know how many products have the color 'red' or 'yellow' etc
             // in that case, we need to make an extra query for this meta-data
             // and skip some filters
-            $meta_result = $this->http->post("indexes/".$query->getIndex()."/search", [
-                'q' => $query->getSearchQuery()
-                ] + [
+            $meta_result = $this->http->post('indexes/'.$query->getIndex().'/search', [
+                'q' => $query->getSearchQuery(),
+            ] + [
                 'filter' => $query->getSearchFiltersForMetadata(),
                 'limit' => $query->getSearchLimit(),
                 'offset' => $query->getSearchOffset(),
                 'facets' => $query->getFacetsDistribution(),
-                'sort' => $query->getSearchOrdering()
+                'sort' => $query->getSearchOrdering(),
             ]);
         }
 
@@ -185,14 +186,14 @@ class MeilisearchConnector
             return $this->searchDocumentsInRandomOrder($query);
         }
 
-        $response = $this->http->post("indexes/".$query->getIndex()."/search", [
-                'q' => $query->getSearchQuery()
-            ] + [
+        $response = $this->http->post('indexes/'.$query->getIndex().'/search', [
+            'q' => $query->getSearchQuery(),
+        ] + [
             'filter' => $query->getSearchFilters(),
             'limit' => $query->getSearchLimit(),
             'offset' => $query->getSearchOffset(),
             'facets' => $query->getFacetsDistribution(),
-            'sort' => $query->getSearchOrdering()
+            'sort' => $query->getSearchOrdering(),
         ]);
 
         return (new MeilisearchQueryCollection($response))->setMetaData($meta_result);
@@ -205,20 +206,20 @@ class MeilisearchConnector
     {
         // first load the total number of documents in this index
         // applying the requested filters
-        $response = $this->postRequest("indexes/".$query->getIndex()."/search", [
-            'q' => $query->getSearchQuery()
+        $response = $this->postRequest('indexes/'.$query->getIndex().'/search', [
+            'q' => $query->getSearchQuery(),
         ] + [
-            'filter' => $query->getSearchFilters()
+            'filter' => $query->getSearchFilters(),
         ]);
 
         $num_documents = $response['estimatedTotalHits'];
 
         if ($num_documents < $query->getSearchLimit()) {
-            throw new NotEnoughDocumentsToOrderRandomly("Only " . $num_documents . " found.");
+            throw new NotEnoughDocumentsToOrderRandomly('Only '.$num_documents.' found.');
         }
 
         // now get random items
-        $numbers = range(0, ($num_documents-1));
+        $numbers = range(0, ($num_documents - 1));
         shuffle($numbers);
         $items = new MeilisearchQueryCollection();
 
@@ -238,13 +239,13 @@ class MeilisearchConnector
     public function updateFilterableAttributes(string $index, array $attributes): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->putRequest("indexes/".$index."/settings/filterable-attributes", $attributes)
+            $this->putRequest('indexes/'.$index.'/settings/filterable-attributes', $attributes)
         );
     }
 
     public function getFilterableAttributes(string $index): MeilisearchResponse
     {
-        return $this->request("indexes/".$index."/settings/filterable-attributes");
+        return $this->request('indexes/'.$index.'/settings/filterable-attributes');
     }
 
     public function syncFilterableAttributes(string $index, array $attributes): ?MeilisearchTask
@@ -264,13 +265,13 @@ class MeilisearchConnector
     public function updateSearchableAttributes(string $index, array $attributes): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->putRequest("indexes/".$index."/settings/searchable-attributes", $attributes)
+            $this->putRequest('indexes/'.$index.'/settings/searchable-attributes', $attributes)
         );
     }
 
     public function getSearchableAttributes(string $index): MeilisearchResponse
     {
-        return $this->request("indexes/".$index."/settings/searchable-attributes");
+        return $this->request('indexes/'.$index.'/settings/searchable-attributes');
     }
 
     public function syncSearchableAttributes(string $index, array $attributes): ?MeilisearchTask
@@ -289,13 +290,13 @@ class MeilisearchConnector
 
     public function getSortableAttributes(string $index): MeilisearchResponse
     {
-        return $this->request("indexes/".$index."/settings/sortable-attributes");
+        return $this->request('indexes/'.$index.'/settings/sortable-attributes');
     }
 
     public function updateSortableAttributes(string $index, array $attributes): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->putRequest("indexes/".$index."/settings/sortable-attributes", $attributes)
+            $this->putRequest('indexes/'.$index.'/settings/sortable-attributes', $attributes)
         );
     }
 
@@ -313,11 +314,37 @@ class MeilisearchConnector
         return null;
     }
 
+    public function getRankingRules(string $index): MeilisearchResponse
+    {
+        return $this->request('indexes/'.$index.'/settings/ranking-rules');
+    }
+
+    public function updateRankingRules(string $index, array $rules): MeilisearchTask
+    {
+        return new MeilisearchTask(
+            $this->putRequest('indexes/'.$index.'/settings/ranking-rules', $rules)
+        );
+    }
+
+    public function syncRankingRules(string $index, array $rules)
+    {
+        $current_rules = $this->getRankingRules($index)->getData();
+
+        array_multisort($rules);
+        array_multisort($current_rules);
+
+        if (serialize($rules) != serialize($current_rules)) {
+            return $this->updateRankingRules($index, $rules);
+        }
+
+        return null;
+    }
+
     public function setMaxTotalHits(string $index, int $max_total_hits): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->patchRequest("indexes/".$index."/settings/pagination", [
-                'maxTotalHits' => $max_total_hits
+            $this->patchRequest('indexes/'.$index.'/settings/pagination', [
+                'maxTotalHits' => $max_total_hits,
             ])
         );
     }
@@ -325,8 +352,8 @@ class MeilisearchConnector
     public function setMaxValuesPerFacet(string $index, int $max_values_per_facet): MeilisearchTask
     {
         return new MeilisearchTask(
-            $this->patchRequest("indexes/".$index."/settings/faceting", [
-                'maxValuesPerFacet' => $max_values_per_facet
+            $this->patchRequest('indexes/'.$index.'/settings/faceting', [
+                'maxValuesPerFacet' => $max_values_per_facet,
             ])
         );
     }
@@ -334,34 +361,34 @@ class MeilisearchConnector
     public function getHealth(): MeilisearchHealth
     {
         return new MeilisearchHealth(
-            $this->request("health")
+            $this->request('health')
         );
     }
 
     public function getTasks(): MeilisearchTasksCollection
     {
         return new MeilisearchTasksCollection(
-            $this->request("tasks")
+            $this->request('tasks')
         );
     }
 
     public function getTask(int $taskId): MeilisearchTask
     {
-        return new MeilisearchTask($this->request("tasks/" . $taskId));
+        return new MeilisearchTask($this->request('tasks/'.$taskId));
     }
 
     public function getVersion(): string
     {
-        return $this->request("version")['pkgVersion'];
+        return $this->request('version')['pkgVersion'];
     }
 
     public function getStats(?string $index = null): MeilisearchResponse
     {
         if ($index) {
-            return $this->request("indexes/".$index."/stats");
+            return $this->request('indexes/'.$index.'/stats');
         }
 
-        return $this->request("stats");
+        return $this->request('stats');
     }
 
     protected function transformData(mixed $data): array
