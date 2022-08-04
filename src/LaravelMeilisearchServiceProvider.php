@@ -18,7 +18,7 @@ class LaravelMeilisearchServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../config/meilisearch.php'   => config_path('meilisearch.php'),
+            __DIR__.'/../config/meilisearch.php' => config_path('meilisearch.php'),
         ], 'laravel-meilisearch');
     }
 
@@ -29,7 +29,7 @@ class LaravelMeilisearchServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->mergeConfigFrom(__DIR__ . '/../config/meilisearch.php', 'meilisearch');
+        $this->mergeConfigFrom(__DIR__.'/../config/meilisearch.php', 'meilisearch');
 
         $this->app->singleton('meilisearch', function ($app) {
             return new MeilisearchConnector(config('meilisearch'));
