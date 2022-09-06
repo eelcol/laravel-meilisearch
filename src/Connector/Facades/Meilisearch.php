@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchTask addDocuments(string $index, mixed $data)
  * @method static MeilisearchDocumentsCollection getDocuments(string $index, array $query)
  * @method static MeilisearchDocument getDocument(string $index, int $id)
+ * @method static MeilisearchTask deleteDocument(string $index, int $id)
+ * @method static MeilisearchTask deleteDocuments(string $index, array $ids)
  * @method static MeilisearchQuery query(string $index)
  * @method static MeilisearchQueryCollection searchDocuments(MeilisearchQuery $query)
  * @method static MeilisearchTask updateFilterableAttributes(string $index, array $attributes)

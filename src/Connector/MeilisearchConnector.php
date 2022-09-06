@@ -149,6 +149,23 @@ class MeilisearchConnector
         );
     }
 
+    /**
+     * @param array<int> $ids
+     */
+    public function deleteDocuments(string $index, array $ids): MeilisearchTask
+    {
+        return new MeilisearchTask(
+            $this->postRequest("indexes/".$index."/documents/delete-batch", $ids)
+        );
+    }
+
+    public function deleteDocument(string $index, int $id): MeilisearchTask
+    {
+        return new MeilisearchTask(
+            $this->deleteRequest("indexes/".$index."/documents/".$id)
+        );
+    }
+
     public function query(string $index): MeilisearchQuery
     {
         return new MeilisearchQuery($index);
