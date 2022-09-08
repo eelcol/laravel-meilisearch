@@ -11,6 +11,8 @@ use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchHealth;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchIndexItem;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
+use Eelcol\LaravelMeilisearch\Exceptions\CannotFilterOnAttribute;
+use Eelcol\LaravelMeilisearch\Exceptions\CannotSortByAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\NotEnoughDocumentsToOrderRandomly;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -175,6 +177,8 @@ class MeilisearchConnector
      * @param MeilisearchQuery $query
      * @return MeilisearchQueryCollection
      * @throws NotEnoughDocumentsToOrderRandomly
+     * @throws CannotFilterOnAttribute
+     * @throws CannotSortByAttribute
      */
     public function searchDocuments(MeilisearchQuery $query): MeilisearchQueryCollection
     {
@@ -211,6 +215,18 @@ class MeilisearchConnector
             'facets' => $query->getFacetsDistribution(),
             'sort' => $query->getSearchOrdering()
         ]);
+
+        if ($response->clientError()) {
+            $message = $response->json('message');
+
+            if (preg_match("/Attribute `(.*)` is not filterable/", $message, $matches)) {
+                throw new CannotFilterOnAttribute($matches[1]);
+            }
+
+            if (preg_match("/Attribute `(.*)` is not sortable/", $message, $matches)) {
+                throw new CannotSortByAttribute($matches[1]);
+            }
+        }
 
         return (new MeilisearchQueryCollection($response))->setMetaData($meta_result);
     }
