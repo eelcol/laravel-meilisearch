@@ -27,7 +27,7 @@ class MeilisearchDocumentsCollection extends MeilisearchCollection
 
         $data = [];
         foreach ($results as $item) {
-            $data[] = new MeilisearchDocument($item);
+            $data[] = MeilisearchDocument::fromArray($item);
         }
 
         $this->data = collect($data);
