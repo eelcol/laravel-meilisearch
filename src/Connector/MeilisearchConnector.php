@@ -233,17 +233,32 @@ class MeilisearchConnector
 
     /**
      * @throws NotEnoughDocumentsToOrderRandomly
+     * @throws CannotFilterOnAttribute
+     * @throws CannotSortByAttribute
      */
     protected function searchDocumentsInRandomOrder(MeilisearchQuery $query): MeilisearchQueryCollection
     {
         // first load the total number of documents in this index
         // applying the requested filters
-        $response = $this->postRequest("indexes/".$query->getIndex()."/search", [
+        $response = $this->http->post("indexes/".$query->getIndex()."/search", [
             'q' => $query->getSearchQuery()
         ] + [
             'filter' => $query->getSearchFilters()
         ]);
 
+        if ($response->clientError()) {
+            $message = $response->json('message');
+
+            if (preg_match("/Attribute `(.*)` is not filterable/", $message, $matches)) {
+                throw new CannotFilterOnAttribute($matches[1]);
+            }
+
+            if (preg_match("/Attribute `(.*)` is not sortable/", $message, $matches)) {
+                throw new CannotSortByAttribute($matches[1]);
+            }
+        }
+
+        $response = new MeilisearchResponse($response);
         $num_documents = $response['estimatedTotalHits'];
 
         if ($num_documents < $query->getSearchLimit()) {
