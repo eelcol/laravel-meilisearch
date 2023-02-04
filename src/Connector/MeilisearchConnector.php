@@ -105,7 +105,9 @@ class MeilisearchConnector
     {
         return new MeilisearchTask(
             $this->postRequest("swap-indexes", [
-                "indexes" => [$indexA, $indexB]
+                [
+                    "indexes" => [$indexA, $indexB]
+                ]
             ])
         );
     }
