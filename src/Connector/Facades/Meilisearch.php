@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchIndexItem getIndexInformation(string $index)
  * @method static MeilisearchTask createIndex(string $index, string $primaryKey)
  * @method static MeilisearchTask deleteIndex(string $index)
+ * @method static MeilisearchTask swapIndex(string $indexA, string $indexB)
  * @method static MeilisearchTask addDocument(string $index, mixed $data)
  * @method static MeilisearchTask addDocuments(string $index, mixed $data)
  * @method static MeilisearchDocumentsCollection getDocuments(string $index, array $query)
