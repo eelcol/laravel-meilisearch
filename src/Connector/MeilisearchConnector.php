@@ -112,6 +112,50 @@ class MeilisearchConnector
 
     /**
      * @param string $index
+     * @param string $new_index_name
+     * @return bool
+     * @throws \Eelcol\LaravelMeilisearch\Exceptions\IndexAlreadyExists
+     * @throws \Eelcol\LaravelMeilisearch\Exceptions\IndexNotFound
+     * @throws \Eelcol\LaravelMeilisearch\Exceptions\MissingDocumentId
+     *
+     * copy the settings of an index to a new index
+     */
+    public function copyIndex(string $index, string $new_index_name): bool
+    {
+        $index_info = $this->getIndexInformation($index);
+        $task = $this->createIndex($new_index_name, $index_info->getPrimaryKey());
+
+        // now wait till the task is finished
+        $task->checkStatus();
+        while ($task->isNotSucceeded()) {
+            if ($task->isFailed()) {
+                trigger_error("Failed creating index!");
+                return false;
+            }
+
+            // wait 1 second
+            sleep(1);
+            $task->checkStatus();
+        }
+
+        // set filterable, searchable and sortable attributes
+        $this->updateFilterableAttributes($new_index_name, $this->getFilterableAttributes($index)->getData());
+        $this->updateSearchableAttributes($new_index_name, $this->getSearchableAttributes($index)->getData());
+        $this->updateSortableAttributes($new_index_name, $this->getSortableAttributes($index)->getData());
+
+        // set the maximum number of total hits
+        $max_total_hits = $this->getPaginationSettings($index)->getData()['maxTotalHits'];
+        $this->setMaxTotalHits($new_index_name, $max_total_hits);
+
+        // set the maximum facet values
+        $max_facet_values = $this->getFacetingSettings($index)->getData()['maxValuesPerFacet'];
+        $this->setMaxValuesPerFacet($new_index_name, $max_facet_values);
+
+        return true;
+    }
+
+    /**
+     * @param string $index
      * @param array|object $data
      */
     public function addDocument(string $index, mixed $data): MeilisearchTask
@@ -365,6 +409,11 @@ class MeilisearchConnector
         );
     }
 
+    public function getPaginationSettings($index): MeilisearchResponse
+    {
+        return $this->request("indexes/".$index."/settings/pagination");
+    }
+
     public function setMaxValuesPerFacet(string $index, int $max_values_per_facet): MeilisearchTask
     {
         return new MeilisearchTask(
@@ -372,6 +421,11 @@ class MeilisearchConnector
                 'maxValuesPerFacet' => $max_values_per_facet
             ])
         );
+    }
+
+    public function getFacetingSettings($index): MeilisearchResponse
+    {
+        return $this->request("indexes/".$index."/settings/faceting");
     }
 
     public function getHealth(): MeilisearchHealth

@@ -6,6 +6,7 @@ use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchDocumentsCollecti
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchIndexCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
 use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
+use Eelcol\LaravelMeilisearch\Connector\MeilisearchResponse;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchDocument;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchHealth;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchIndexItem;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchIndexItem getIndexInformation(string $index)
  * @method static MeilisearchTask createIndex(string $index, string $primaryKey)
  * @method static MeilisearchTask deleteIndex(string $index)
+ * @method static bool copyIndex(string $index, string $new_index_name)
  * @method static MeilisearchTask swapIndex(string $indexA, string $indexB)
  * @method static MeilisearchTask addDocument(string $index, mixed $data)
  * @method static MeilisearchTask addDocuments(string $index, mixed $data)
@@ -38,7 +40,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static array getSortableAttributes(string $index)
  * @method static MeilisearchTask|null syncSortableAttributes(string $index, array $attribtues)
  * @method static MeilisearchTask setMaxTotalHits(string $index, int $max_total_hits)
+ * @method static MeilisearchResponse getPaginationSettings(string $index)
  * @method static MeilisearchTask setMaxValuesPerFacet(string $index, int $max_values_per_facet)
+ * @method static MeilisearchResponse getFacetingSettings(string $index)
  * @method static MeilisearchHealth getHealth()
  * @method static MeilisearchTask getTask(int $taskId)
  * @method static string getVersion()
