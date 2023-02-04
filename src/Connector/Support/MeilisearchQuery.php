@@ -32,6 +32,10 @@ class MeilisearchQuery
 
     protected int $offset = 0;
 
+    protected ?int $page = null;
+
+    protected ?int $hitsPerPage = null;
+
     protected bool $in_random_order = false;
 
     protected bool $separate_query_for_metadata = false;
@@ -77,17 +81,19 @@ class MeilisearchQuery
         return $this;
     }
 
-    public function offset(int $offset): self
+    public function page(int $page): self
     {
-        $this->offset = $offset;
+        $this->page = $page;
         $this->in_random_order = false;
 
         return $this;
     }
 
-    public function getOffset(): int
+    public function hitsPerPage(int $hitsPerPage): self
     {
-        return $this->offset;
+        $this->hitsPerPage = $hitsPerPage;
+
+        return $this;
     }
 
     /**
@@ -297,16 +303,6 @@ class MeilisearchQuery
         return (new ParseToSearchFilters($this))->forMetadata()->parse();
     }
 
-    public function getSearchLimit(): int
-    {
-        return $this->limit;
-    }
-
-    public function getSearchOffset(): int
-    {
-        return $this->offset;
-    }
-
     public function getFacetsDistribution(): array
     {
         return $this->facets;
@@ -325,6 +321,26 @@ class MeilisearchQuery
     public function shouldQueryForMetadata(): bool
     {
         return $this->separate_query_for_metadata;
+    }
+
+    public function getPage(): ?int
+    {
+        return $this->page;
+    }
+
+    public function getSearchLimit(): int
+    {
+        return $this->limit;
+    }
+
+    public function getSearchOffset(): int
+    {
+        return $this->offset;
+    }
+
+    public function getHitsPerPage(): ?int
+    {
+        return $this->hitsPerPage;
     }
 
     public function when($expression, Closure $closure): self
@@ -362,6 +378,48 @@ class MeilisearchQuery
             ->createPaginator();
     }
 
+    public function getMeilisearchDataForMetadataQuery(): array
+    {
+        $data = [
+            'q' => $this->getSearchQuery()
+        ] + [
+            'filter' => $this->getSearchFiltersForMetadata(),
+            'facets' => $this->getFacetsDistribution(),
+            'sort' => $this->getSearchOrdering(),
+        ];
+
+        if (is_null($this->page)) {
+            $data['limit'] = $this->getSearchLimit();
+            $data['offset'] = $this->getSearchOffset();
+        } else {
+            $data['page'] = $this->getPage();
+            $data['hitsPerPage'] = $this->getHitsPerPage();
+        }
+
+        return $data;
+    }
+
+    public function getMeilisearchDataForMainQuery(): array
+    {
+        $data = [
+            'q' => $this->getSearchQuery()
+        ] + [
+            'filter' => $this->getSearchFilters(),
+            'facets' => $this->getFacetsDistribution(),
+            'sort' => $this->getSearchOrdering(),
+        ];
+
+        if (is_null($this->page)) {
+            $data['limit'] = $this->getSearchLimit();
+            $data['offset'] = $this->getSearchOffset();
+        } else {
+            $data['page'] = $this->getPage();
+            $data['hitsPerPage'] = $this->getHitsPerPage();
+        }
+
+        return $data;
+    }
+
     public function dd()
     {
         dd([
@@ -369,9 +427,9 @@ class MeilisearchQuery
             'filters' => $this->getSearchFilters(),
             'filters_for_metadata' => $this->getSearchFiltersForMetadata(),
             'ordering' => $this->getSearchOrdering(),
-            'limit' => $this->getSearchLimit(),
-            'offset' => $this->getSearchOffset(),
-            'facets' => $this->getFacetsDistribution()
+            'facets' => $this->getFacetsDistribution(),
+            'page' => $this->getPage(),
+            'perPage' => $this->getHitsPerPage(),
         ]);
     }
 }

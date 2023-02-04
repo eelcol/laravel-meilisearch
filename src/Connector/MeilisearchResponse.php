@@ -42,19 +42,28 @@ class MeilisearchResponse implements ArrayAccess, IteratorAggregate, Countable
         return $this->data;
     }
 
-    public function getOffset(): ?int
+    public function getCurrentPage(): ?int
     {
-        return $this->response->json('offset');
+        return $this->response->json('page');
     }
 
-    public function getLimit(): ?int
+    public function getTotalPages(): ?int
     {
-        return $this->response->json('limit');
+        return $this->response->json('totalPages');
     }
 
-    public function getTotal(): ?int
+    public function getTotalHits(): ?int
     {
-        return $this->response->json('total');
+        /**
+         * A paginated result will have the key 'totalHits'
+         * A non-paginated result will have 'estimatedTotalHits'
+         */
+        return $this->response->json('totalHits') ?? $this->response->json('estimatedTotalHits');
+    }
+
+    public function getHitsPerPage(): ?int
+    {
+        return $this->response->json('hitsPerPage');
     }
 
     public function getIterator(): \ArrayIterator

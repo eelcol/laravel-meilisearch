@@ -101,6 +101,15 @@ class MeilisearchConnector
         );
     }
 
+    public function swapIndex(string $indexA, string $indexB): MeilisearchTask
+    {
+        return new MeilisearchTask(
+            $this->postRequest("swap-indexes", [
+                "indexes" => [$indexA, $indexB]
+            ])
+        );
+    }
+
     /**
      * @param string $index
      * @param array|object $data
@@ -191,30 +200,14 @@ class MeilisearchConnector
             // so you still want to know how many products have the color 'red' or 'yellow' etc
             // in that case, we need to make an extra query for this meta-data
             // and skip some filters
-            $meta_result = $this->http->post("indexes/".$query->getIndex()."/search", [
-                'q' => $query->getSearchQuery()
-                ] + [
-                'filter' => $query->getSearchFiltersForMetadata(),
-                'limit' => $query->getSearchLimit(),
-                'offset' => $query->getSearchOffset(),
-                'facets' => $query->getFacetsDistribution(),
-                'sort' => $query->getSearchOrdering()
-            ]);
+            $meta_result = $this->http->post("indexes/".$query->getIndex()."/search", $query->getMeilisearchDataForMetadataQuery());
         }
 
         if ($query->shouldOrderRandomly()) {
             return $this->searchDocumentsInRandomOrder($query);
         }
 
-        $response = $this->http->post("indexes/".$query->getIndex()."/search", [
-                'q' => $query->getSearchQuery()
-            ] + [
-            'filter' => $query->getSearchFilters(),
-            'limit' => $query->getSearchLimit(),
-            'offset' => $query->getSearchOffset(),
-            'facets' => $query->getFacetsDistribution(),
-            'sort' => $query->getSearchOrdering()
-        ]);
+        $response = $this->http->post("indexes/".$query->getIndex()."/search", $query->getMeilisearchDataForMainQuery());
 
         if ($response->clientError()) {
             $message = $response->json('message');
@@ -243,7 +236,9 @@ class MeilisearchConnector
         $response = $this->http->post("indexes/".$query->getIndex()."/search", [
             'q' => $query->getSearchQuery()
         ] + [
-            'filter' => $query->getSearchFilters()
+            'filter' => $query->getSearchFilters(),
+            'page' => 1,
+            'hitsPerPage' => 1,
         ]);
 
         if ($response->clientError()) {
@@ -259,7 +254,7 @@ class MeilisearchConnector
         }
 
         $response = new MeilisearchResponse($response);
-        $num_documents = $response['estimatedTotalHits'];
+        $num_documents = $response->getTotalHits();
 
         if ($num_documents < $query->getSearchLimit()) {
             throw new NotEnoughDocumentsToOrderRandomly("Only " . $num_documents . " found.");
@@ -274,7 +269,7 @@ class MeilisearchConnector
             $offset = $numbers[$i];
 
             $newQuery = clone $query;
-            $newQuery->limit(1)->offset($offset);
+            $newQuery->page($offset)->hitsPerPage(1);
 
             $response = $this->searchDocuments($newQuery);
             $items->pushCollection($response);

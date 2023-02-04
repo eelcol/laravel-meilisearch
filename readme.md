@@ -27,6 +27,12 @@ When using Meilisearch version 0.28:
 composer require eelcol/laravel-meilisearch:^1.0
 ```
 
+When using Meilisearch version 0.30:
+
+```
+composer require eelcol/laravel-meilisearch:^2.0
+```
+
 ### Setup .env
 Change your .env to include the following variables:
 ```

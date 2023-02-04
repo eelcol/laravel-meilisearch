@@ -25,8 +25,6 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
 
     protected int $current_page;
 
-    protected int $offset;
-
     public function __construct(MeilisearchQuery $query)
     {
         $this->query = $query;
@@ -69,11 +67,10 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
     {
         // get current page
         $this->current_page = Paginator::resolveCurrentPage($this->page_name);
-        $this->offset = ($this->per_page * ($this->current_page - 1));
 
-        // set limit and offset
-        $this->query->limit($this->per_page);
-        $this->query->offset($this->offset);
+        // set page number and num per page
+        $this->query->page($this->current_page);
+        $this->query->hitsPerPage($this->per_page);
 
         // build paginator
         $this->buildPaginator();
@@ -83,17 +80,19 @@ class MeilisearchPaginator implements Arrayable, ArrayAccess, Countable, Iterato
 
     public function nextPage()
     {
-        // set query offset
-        $this->query->offset(
-            $this->query->getOffset() + $this->per_page
-        );
-
         $this->current_page++;
+
+        $this->query->page($this->current_page);
 
         // build paginator
         $this->buildPaginator();
 
         return $this;
+    }
+
+    public function currentPage(): int
+    {
+        return $this->query->getPage();
     }
 
     protected function buildPaginator()

@@ -14,16 +14,16 @@ use IteratorAggregate;
 class MeilisearchDocumentsCollection extends MeilisearchCollection
 {
     protected string $index;
-    protected int $offset;
-    protected int $limit;
-    protected int $count;
+    protected ?int $totalPages;
+    protected ?int $currentPage;
+    protected ?int $hitsPerPage;
 
     public function __construct(string $index, MeilisearchResponse $results)
     {
         $this->index = $index;
-        $this->offset = $results->getOffset();
-        $this->limit = $results->getLimit();
-        $this->count = $results->getTotal();
+        $this->totalPages = $results->getTotalPages();
+        $this->currentPage = $results->getCurrentPage();
+        $this->hitsPerPage = $results->getHitsPerPage();
 
         $data = [];
         foreach ($results as $item) {
@@ -34,16 +34,16 @@ class MeilisearchDocumentsCollection extends MeilisearchCollection
         return $this->data;
     }
 
-    public function hasNextPage()
+    public function hasNextPage(): bool
     {
-        return ($this->offset + $this->limit) < $this->count;
+        return $this->totalPages && $this->currentPage < $this->totalPages;
     }
 
-    public function getNextPage()
+    public function getNextPage(): self
     {
         return Meilisearch::getDocuments($this->index, [
-            'limit' => $this->limit,
-            'offset' => ($this->offset + $this->limit)
+            'page' => ($this->currentPage + 1),
+            'hitsPerPage' => $this->hitsPerPage,
         ]);
     }
 }

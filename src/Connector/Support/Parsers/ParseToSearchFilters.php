@@ -94,20 +94,31 @@ class ParseToSearchFilters
         // this should result in a check if 1 of the values match
         // with OR statements (default)
         // with AND statements if the operator is "MATCHES"
-        $expression = "(";
-
         $boolean = "OR";
         if (isset($where['operator']) && strtolower($where['operator']) == "matches") {
             $boolean = "AND";
         }
 
-        foreach ($where['value'] as $val) {
-            $value = $this->escapeValue($val);
-            $expression .= "'" . $where['column'] . "' = " . $value . " " . $boolean . " ";
-        }
+        if ($boolean == "OR") {
+            // use the IN operator
+            $expression = "'" . $where['column'] . "' IN [";
+            foreach ($where['value'] as $val) {
+                $value = $this->escapeValue($val);
+                $expression .= $value . ",";
+            }
 
-        $expression = substr($expression, 0, (strlen($boolean) + 2) * -1);
-        $expression .= ")";
+            $expression = substr($expression, 0, -1);
+            $expression .= "]";
+        } else {
+            $expression = "(";
+            foreach ($where['value'] as $val) {
+                $value = $this->escapeValue($val);
+                $expression .= "'" . $where['column'] . "' = " . $value . " " . $boolean . " ";
+            }
+
+            $expression = substr($expression, 0, (strlen($boolean) + 2) * -1);
+            $expression .= ")";
+        }
 
         return $expression;
     }
