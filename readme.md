@@ -23,6 +23,7 @@ Determine which version you need based on the Meilisearch version:
 | 0.28                | ^1.0            |
 | 0.30                | ~2.0.0          |
 | 1.0.*               | ~2.0.0          |
+| 1.1.*               | ~2.1.0          |
 
 So for example, when using Meilisearch 1.0.2, use the following command:
 
@@ -289,7 +290,7 @@ MeilisearchQuery::index('products')
 
 ### Disjunctive facets distribution
 
-In the current version of Meilisearch, facets of an attribute are not returned when you are filtering on an attribute. See the following discussion: https://github.com/meilisearch/product/discussions/187
+In the current version of Meilisearch, facets of an attribute are not returned when you are filtering on that specific attribute. See the following discussion: https://github.com/meilisearch/product/discussions/187
 
 For example, when you run the above query, the colors `grey`, `silver`, `gold`, `yellow` are returned. Next, you only want to display the products with a `yellow` color. So you apply a filter:
 
@@ -299,31 +300,37 @@ MeilisearchQuery::index('products')
     ->where('color', '=', 'yellow')
     ->setFacets([
         'color',
-        'brand'
+        'brand',
+        'size',
     ])
     ->get();
 ```
 
 However when you do this, the facet `color` will now only return `yellow`. That makes it more difficult to display all the possible colors to the end-user. Thats why this package has a `keepFacetsInMetadata` method. You can apply filters inside this method, which will not be applied when fetching metadata.
 
-When using the `keepFacetsInMetadata` method, the package will create 2 Meilisearch queries. 1 query with all the filters applied to fetch the products, and 1 query with some of the filters to fetch the metadata (facets). So the above example can be changed to the following:
+Starting from Meilisearch version 1.1, this problem can be solved using the `multi-search` endpoint. This is how I solved this issue in this package. The package will make an extra query for every filter used in the query. But *all* queries are combined in a single request, to reduce the number of resources needed. Take a look at the following example:
 
 ```php
 MeilisearchQuery::index('products')
     ->where('categories', '=', 'phones')
     ->keepFacetsInMetadata(function ($q) {
         $q->where('color', '=', 'yellow');
+        $q->where('size', '=', 'XL');
     })
     ->setFacets([
         'color',
-        'brand'
+        'brand',
+        'size',
     ])
     ->get();
 ```
 
-When doing this, the returned data will have all the facets that are available on the products in the category `phones`. So you can easily display all the colors that are available, even when you are filtering on a color.
+This query will make the following requests:
+- Get all brands, with products that are in the phones category and match color=yellow and size=XL
+- Get all colors, with products that are in the phones category and match size=XL
+- Get all sizes, with products that are in the phones category and match color=yellow
 
-Be aware that this method will generate another query. Because most of the times the Meilisearch queries are very fast (< 10ms), I believe this will not cause any significant impact on the site speed.
+Since version 1.1 of Meilisearch, this is the recommended way of using multi-select facets.
 
 ### Limits and offsets
 Limits and offsets can easily be added to the query. The following query will return 10 results, starting from the 20th result:

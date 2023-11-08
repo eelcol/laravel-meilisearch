@@ -14,14 +14,32 @@ class MeilisearchQueryCollection extends MeilisearchCollection
 {
     protected Response $result;
 
-    protected Response $metadata;
+    protected array $facetDistribution = [];
 
     public function __construct(?Response $data = null)
     {
         $hits = [];
         if ($data) {
             $this->result = $data;
-            $hits = $data->json('hits');
+
+            $results = $data->json('results');
+            if ($results) {
+                // query result with multiple results
+                // happens after query-ing `multi-search` endpoint
+                $hits = $results[0]['hits'];
+
+                if (isset($results[0]['facetDistribution'])) {
+                    $this->facetDistribution = $results[0]['facetDistribution'];
+                }
+
+                // now combine the facet distribution of the other metadata queries
+                for ($i = 1; $i < count($results); $i++) {
+                    $this->facetDistribution = array_merge($this->facetDistribution, $results[$i]['facetDistribution']);
+                }
+            } else {
+                $hits = $data->json('hits');
+                $this->facetDistribution = $data->json('facetDistribution') ?? [];
+            }
         }
 
         $this->data = collect(array_map(function ($item) {
@@ -34,15 +52,6 @@ class MeilisearchQueryCollection extends MeilisearchCollection
         $this->data->transform(function ($item) use ($class) {
             return new $class($item->getData());
         });
-
-        return $this;
-    }
-
-    public function setMetadata(?Response $searchResult = null)
-    {
-        if (!is_null($searchResult)) {
-            $this->metadata = $searchResult;
-        }
 
         return $this;
     }
@@ -74,16 +83,8 @@ class MeilisearchQueryCollection extends MeilisearchCollection
         return $this->result->json('page') < $this->result->json('totalPages');
     }
 
-    public function getFacetsDistribution(): ?array
+    public function getFacetsDistribution(): array
     {
-        if (isset($this->metadata)) {
-            return $this->metadata->json('facetDistribution');
-        }
-
-        if (isset($this->result)) {
-            return $this->result->json('facetDistribution');
-        }
-
-        return null;
+        return $this->facetDistribution;
     }
 }

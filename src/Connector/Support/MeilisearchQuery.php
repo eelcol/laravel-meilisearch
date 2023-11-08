@@ -298,9 +298,19 @@ class MeilisearchQuery
         return (new ParseToSearchFilters($this))->parse();
     }
 
+    public function getSearchFiltersExcludeColumn(string $column): array
+    {
+        return (new ParseToSearchFilters($this))->excludeColumn($column)->parse();
+    }
+
     public function getSearchFiltersForMetadata(): array
     {
         return (new ParseToSearchFilters($this))->forMetadata()->parse();
+    }
+
+    public function getSearchFilterColumnsForMetadata(): array
+    {
+        return (new ParseToSearchFilters($this))->getFilterColumns()['metadata'];
     }
 
     public function getFacetsDistribution(): array
@@ -378,25 +388,33 @@ class MeilisearchQuery
             ->createPaginator();
     }
 
-    public function getMeilisearchDataForMetadataQuery(): array
+    public function getMeilisearchDataForMetadataQueries(): array
     {
-        $data = [
-            'q' => $this->getSearchQuery()
-        ] + [
-            'filter' => $this->getSearchFiltersForMetadata(),
-            'facets' => $this->getFacetsDistribution(),
-            'sort' => $this->getSearchOrdering(),
-        ];
+        /**
+         * Fetch the columns on which the data is filtering
+         * now perform a query for meta-data for each of the columns
+         * change the search query accordingly.
+         * For example: the query filters on color=black, size=M, filter category not used
+         * - query for filters 'size' and 'category' with 'color=black'
+         * - query for filters 'color' and 'category' with 'size=M'
+         */
+        $searchColumns = $this->getSearchFilterColumnsForMetadata();
 
-        if (is_null($this->page)) {
-            $data['limit'] = $this->getSearchLimit();
-            $data['offset'] = $this->getSearchOffset();
-        } else {
-            $data['page'] = $this->getPage();
-            $data['hitsPerPage'] = $this->getHitsPerPage();
+        $queries = [];
+
+        foreach ($searchColumns as $searchColumn) {
+            $queries[] = [
+                    'indexUid' => $this->getIndex(),
+                    'q' => $this->getSearchQuery(),
+                    'limit' => 1,
+                ] + [
+                    'filter' => $this->getSearchFiltersExcludeColumn($searchColumn),
+                    'facets' => [$searchColumn],
+                    'sort' => $this->getSearchOrdering(),
+                ];
         }
 
-        return $data;
+        return $queries;
     }
 
     public function getMeilisearchDataForMainQuery(): array

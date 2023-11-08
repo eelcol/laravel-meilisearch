@@ -264,23 +264,35 @@ class MeilisearchConnector
      */
     public function searchDocuments(MeilisearchQuery $query): MeilisearchQueryCollection
     {
-        $meta_result = null;
-        if ($query->shouldQueryForMetadata()) {
-            // perform a separate query with other filters
-            // for the meta data
-            // for example: you want to query all products with color = black
-            // but you still want to receive the number of products for the other colors
-            // so you still want to know how many products have the color 'red' or 'yellow' etc
-            // in that case, we need to make an extra query for this meta-data
-            // and skip some filters
-            $meta_result = $this->http->post("indexes/".$query->getIndex()."/search", $query->getMeilisearchDataForMetadataQuery());
-        }
-
         if ($query->shouldOrderRandomly()) {
             return $this->searchDocumentsInRandomOrder($query);
         }
 
-        $response = $this->http->post("indexes/".$query->getIndex()."/search", $query->getMeilisearchDataForMainQuery());
+        $meta_result = null;
+
+        if ($query->shouldQueryForMetadata()) {
+            // perform separate queries with the filters to get the meta data
+            // for example: you want to query all products with color = black
+            // but you still want to receive the number of products for the other colors
+            // so you still want to know how many products have the color 'red' or 'yellow' etc
+            // in that case, we need to make one extra query for this meta-data
+            // and skip some filters
+            // another example: you want to query all products with color = black and size = M. Another filter is category
+            // now you want to know:
+            // - the number of products for every category, for black and size M products
+            // - the number of products for every color, for products that have size M
+            // - the number of products for every size, for products that have a black color
+            // this leads to 1 additional query for every filter used.
+            // but it is all combined in a single request
+            $response = $this->http->post("multi-search", [
+                'queries' => array_merge(
+                    [['indexUid' => $query->getIndex()] + $query->getMeilisearchDataForMainQuery()],
+                    $query->getMeilisearchDataForMetadataQueries()
+                )
+            ]);
+        } else {
+            $response = $this->http->post("indexes/" . $query->getIndex() . "/search", $query->getMeilisearchDataForMainQuery());
+        }
 
         if ($response->clientError()) {
             $message = $response->json('message');
@@ -294,7 +306,7 @@ class MeilisearchConnector
             }
         }
 
-        return (new MeilisearchQueryCollection($response))->setMetaData($meta_result);
+        return (new MeilisearchQueryCollection($response));
     }
 
     /**
