@@ -3,6 +3,7 @@
 namespace Eelcol\LaravelMeilisearch\Commands;
 
 use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
+use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
@@ -13,7 +14,7 @@ class SetIndexSettings extends Command
      *
      * @var string
      */
-    protected $signature = 'meilisearch:set-index-settings';
+    protected $signature = 'meilisearch:set-index-settings {--mshost=} {--mskey=}';
 
     /**
      * The console command description.
@@ -39,6 +40,14 @@ class SetIndexSettings extends Command
      */
     public function handle()
     {
+        if ($this->option('mshost') && $this->option('mskey')) {
+            $connector = new MeilisearchConnector([
+                'host' => $this->option('mshost'),
+                'key' => $this->option('mskey')
+            ]);
+            app()->instance('meilisearch', $connector);
+        }
+
         $files = File::allFiles(base_path('database/meilisearch'));
 
         foreach ($files as $file) {

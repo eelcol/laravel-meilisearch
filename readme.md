@@ -15,22 +15,19 @@ When using this package, you should determine yourself when and which data you s
 Currently, this package supports Meilisearch up to version 0.27. Version 0.28 of Meilisearch introduced some breaking changes. A new version of this package compatible with 0.28 will be released soon.
 
 ## Installation
-When using Meilisearch up to version 0.27, use the following command:
+Determine which version you need based on the Meilisearch version:
+
+| Meilisearch version | Package version |
+|---------------------|-----------------|
+| Up to 0.27          | <=1             |
+| 0.28                | ^1.0            |
+| 0.30                | ~2.0.0          |
+| 1.0.*               | ~2.0.0          |
+
+So for example, when using Meilisearch 1.0.2, use the following command:
 
 ```
-composer require eelcol/laravel-meilisearch:<=1
-```
-
-When using Meilisearch version 0.28:
-
-```
-composer require eelcol/laravel-meilisearch:^1.0
-```
-
-When using Meilisearch version 0.30:
-
-```
-composer require eelcol/laravel-meilisearch:^2.0
+composer require eelcol/laravel-meilisearch:~2.0.0
 ```
 
 ### Setup .env
@@ -39,6 +36,7 @@ Change your .env to include the following variables:
 MEILISEARCH_HOST=...
 MEILISEARCH_KEY=...
 ```
+When not using a Meilisearch key, the .env variable MEILISEARCH_KEY can be any value.
 
 ### Publish assets
 
@@ -68,6 +66,12 @@ php artisan meilisearch:set-index-settings
 Compare this to the database migrations of Laravel. First you have to create a database migration, next you have to run the migration to actually create the table, or make the adjustment.
 
 Run this command *every time you make changes to the `database/meilisearch/products.php` file*. Also, run this command *on every deployment*, so you have an up-to-date Meilisearch instance in production.
+
+When you want to set the index settings on a different Meilisearch installation, you can use the `--mshost` and `--mskey` options:
+
+```
+php artisan meilisearch:set-index-settings --mshost=http://another-meilisearch-installation:7700 --mskey=secret-key
+```
 
 ## Master data in Meilisearch
 All the functionalities that are mentioned in the Meilisearch docs are available in this package. The most important functionalities are listed below:

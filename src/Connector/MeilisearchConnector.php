@@ -13,6 +13,9 @@ use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotFilterOnAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotSortByAttribute;
+use Eelcol\LaravelMeilisearch\Exceptions\IncorrectMeilisearchKey;
+use Eelcol\LaravelMeilisearch\Exceptions\IndexNotFound;
+use Eelcol\LaravelMeilisearch\Exceptions\NoMeilisearchHostGiven;
 use Eelcol\LaravelMeilisearch\Exceptions\NotEnoughDocumentsToOrderRandomly;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -22,19 +25,35 @@ class MeilisearchConnector
 {
     protected PendingRequest $http;
 
+    /**
+     * @throws NoMeilisearchHostGiven
+     */
     public function __construct(array $connection_data)
     {
-        $this->http = Http::baseUrl($connection_data['host'])->withToken($connection_data['key']);
+        if (!isset($connection_data['host'])) {
+            throw new NoMeilisearchHostGiven();
+        }
+
+        $this->http = Http::baseUrl($connection_data['host']);
+
+        if (isset($connection_data['key']) && !empty($connection_data['key'])) {
+            $this->http->withToken($connection_data['key']);
+        }
     }
 
     /**
      * @param string $path
      * @param array<string, mixed> $query
      * @return MeilisearchResponse
+     * @throws IncorrectMeilisearchKey
      */
     protected function request(string $path, array $query = []): MeilisearchResponse
     {
         $response = $this->http->get($path, $query);
+
+        if ($response->status() == 403) {
+            throw new IncorrectMeilisearchKey("Incorrect Meilisearch key is given. Enter a blank string to not use a key.");
+        }
 
         return new MeilisearchResponse($response);
     }
@@ -79,9 +98,17 @@ class MeilisearchConnector
         return $indexes->where('uid', $index)->count() > 0;
     }
 
+    /**
+     * @throws IndexNotFound
+     */
     public function getIndexInformation(string $index): MeilisearchIndexItem
     {
-        return $this->getAllIndexes()->firstWhere('uid', $index);
+        $item = $this->getAllIndexes()->firstWhere('uid', $index);
+        if (!$item) {
+            throw new IndexNotFound($index);
+        }
+
+        return $item;
     }
 
     public function createIndex(string $index, string $primaryKey = 'id'): MeilisearchTask
