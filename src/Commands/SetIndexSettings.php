@@ -81,6 +81,11 @@ class SetIndexSettings extends Command
             Meilisearch::syncSearchableAttributes($index, ($config['search'] ?? []));
             Meilisearch::syncSortableAttributes($index, ($config['sortable'] ?? []));
 
+            // sync ranking rules if they are present in the config
+            if (isset($config['ranking'])) {
+                Meilisearch::syncRankingRules($index, $config['ranking']);
+            }
+
             // set the maximum number of total hits
             // by default: 10.000
             $max_total_hits = $config['max_total_hits'] ?? 10000;

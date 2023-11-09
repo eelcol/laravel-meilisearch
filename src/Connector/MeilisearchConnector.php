@@ -450,6 +450,32 @@ class MeilisearchConnector
         return null;
     }
 
+    public function getRankingRules(string $index): MeilisearchResponse
+    {
+        return $this->request("indexes/" . $index . "/settings/ranking-rules");
+    }
+
+    public function updateRankingRules(string $index, array $rules): MeilisearchTask
+    {
+        return new MeilisearchTask(
+            $this->putRequest("indexes/" . $index . "/settings/ranking-rules", $rules)
+        );
+    }
+
+    public function syncRankingRules(string $index, array $rules): ?MeilisearchTask
+    {
+        $current_rules = $this->getRankingRules($index)->getData();
+
+        array_multisort($rules);
+        array_multisort($current_rules);
+
+        if (serialize($rules) != serialize($current_rules)) {
+            return $this->updateRankingRules($index, $rules);
+        }
+
+        return null;
+    }
+
     public function setMaxTotalHits(string $index, int $max_total_hits): MeilisearchTask
     {
         return new MeilisearchTask(
