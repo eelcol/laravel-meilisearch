@@ -10,6 +10,7 @@ use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchDocument;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchHealth;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchIndexItem;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
+use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchMultiSearch;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotFilterOnAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotSortByAttribute;
@@ -268,8 +269,6 @@ class MeilisearchConnector
             return $this->searchDocumentsInRandomOrder($query);
         }
 
-        $meta_result = null;
-
         if ($query->shouldQueryForMetadata()) {
             // perform separate queries with the filters to get the meta data
             // for example: you want to query all products with color = black
@@ -305,6 +304,15 @@ class MeilisearchConnector
                 throw new CannotSortByAttribute($matches[1]);
             }
         }
+
+        return (new MeilisearchQueryCollection($response));
+    }
+
+    public function multipleSearchDocuments(MeilisearchMultiSearch $search): MeilisearchQueryCollection
+    {
+        $response = $this->http->post("multi-search", [
+            'queries' => $search->getQueryParam()
+        ]);
 
         return (new MeilisearchQueryCollection($response));
     }
@@ -348,19 +356,20 @@ class MeilisearchConnector
         // now get random items
         $numbers = range(0, ($num_documents-1));
         shuffle($numbers);
-        $items = new MeilisearchQueryCollection();
+
+        $search = new MeilisearchMultiSearch();
 
         for ($i = 0; $i < $query->getSearchLimit(); $i++) {
             $offset = $numbers[$i];
 
             $newQuery = clone $query;
-            $newQuery->page($offset)->hitsPerPage(1);
+            $newQuery->page($offset)->hitsPerPage(1)->limit(1);
 
-            $response = $this->searchDocuments($newQuery);
-            $items->pushCollection($response);
+            $search->addQuery($newQuery);
         }
 
-        return $items;
+        // perform queries
+        return $search->perform();
     }
 
     public function updateFilterableAttributes(string $index, array $attributes): MeilisearchTask

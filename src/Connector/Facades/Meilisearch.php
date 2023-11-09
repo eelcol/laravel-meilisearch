@@ -11,6 +11,7 @@ use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchDocument;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchHealth;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchIndexItem;
 use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
+use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchMultiSearch;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Illuminate\Support\Facades\Facade;
 
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchTask deleteDocuments(string $index, array $ids)
  * @method static MeilisearchQuery query(string $index)
  * @method static MeilisearchQueryCollection searchDocuments(MeilisearchQuery $query)
+ * @method static MeilisearchQueryCollection multipleSearchDocuments(MeilisearchMultiSearch $search)
  * @method static MeilisearchTask updateFilterableAttributes(string $index, array $attributes)
  * @method static array getFilterableAttributes(string $index)
  * @method static MeilisearchTask|null syncFilterableAttributes(string $index, array $attributes)

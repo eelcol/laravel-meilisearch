@@ -32,9 +32,12 @@ class MeilisearchQueryCollection extends MeilisearchCollection
                     $this->facetDistribution = $results[0]['facetDistribution'];
                 }
 
-                // now combine the facet distribution of the other metadata queries
+                // now combine the facet distribution of the other queries
+                // this can be a query to get metadata for disjunctive facets
+                // or combined queries, for example to load multiple random items
                 for ($i = 1; $i < count($results); $i++) {
                     $this->facetDistribution = array_merge($this->facetDistribution, $results[$i]['facetDistribution']);
+                    $hits = array_merge($hits, $results[$i]['hits']);
                 }
             } else {
                 $hits = $data->json('hits');
