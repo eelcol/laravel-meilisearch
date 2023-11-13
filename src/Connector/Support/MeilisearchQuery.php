@@ -45,6 +45,8 @@ class MeilisearchQuery
 
     protected bool $inside_where_closure = false;
 
+    protected array $attributesToSearchOn;
+
     public function __construct(string $index = '')
     {
         $this->index = $index;
@@ -334,6 +336,18 @@ class MeilisearchQuery
     }
 
     /**
+     * @param array $attributes<string>
+     * @return $this
+     * Select a subset of attributes to search on.
+     */
+    public function searchOnAttributes(array $attributes): self
+    {
+        $this->attributesToSearchOn = $attributes;
+
+        return $this;
+    }
+
+    /**
      * @return $this
      */
     protected function newQuery(): self
@@ -427,6 +441,15 @@ class MeilisearchQuery
         return $this->hitsPerPage;
     }
 
+    public function getAttributesToSearchOn(): ?array
+    {
+        if (!isset($this->attributesToSearchOn)) {
+            return null;
+        }
+
+        return $this->attributesToSearchOn;
+    }
+
     public function when($expression, Closure $closure): self
     {
         if ($expression === true) {
@@ -513,6 +536,10 @@ class MeilisearchQuery
             'sort' => $this->getSearchOrdering(),
         ];
 
+        if (!is_null($this->getAttributesToSearchOn())) {
+            $data['attributesToSearchOn'] = $this->getAttributesToSearchOn();
+        }
+
         if (is_null($this->page)) {
             $data['limit'] = $this->getSearchLimit();
             $data['offset'] = $this->getSearchOffset();
@@ -534,6 +561,7 @@ class MeilisearchQuery
             'facets' => $this->getFacetsDistribution(),
             'page' => $this->getPage(),
             'perPage' => $this->getHitsPerPage(),
+            'attributesToSearchOn' => $this->getAttributesToSearchOn(),
         ]);
     }
 
@@ -547,6 +575,7 @@ class MeilisearchQuery
             'facets' => $this->getFacetsDistribution(),
             'page' => $this->getPage(),
             'perPage' => $this->getHitsPerPage(),
+            'attributesToSearchOn' => $this->getAttributesToSearchOn(),
         ];
     }
 }

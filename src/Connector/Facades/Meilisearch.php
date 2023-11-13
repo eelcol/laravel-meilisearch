@@ -3,6 +3,7 @@
 namespace Eelcol\LaravelMeilisearch\Connector\Facades;
 
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchDocumentsCollection;
+use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchFacetValuesCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchIndexCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
 use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchTask deleteDocument(string $index, int $id)
  * @method static MeilisearchTask deleteDocuments(string $index, array $ids)
  * @method static MeilisearchTask deleteFromQuery(MeilisearchQuery $query)
+ * @method static MeilisearchFacetValuesCollection searchFacetValues(string $index, string $facetName, string $facetQuery)
  * @method static MeilisearchQuery query(string $index)
  * @method static MeilisearchQueryCollection searchDocuments(MeilisearchQuery $query)
  * @method static MeilisearchQueryCollection multipleSearchDocuments(MeilisearchMultiSearch $search)

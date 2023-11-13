@@ -4,7 +4,6 @@ namespace Eelcol\LaravelMeilisearch\Tests\Unit\Support;
 
 use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
 use Eelcol\LaravelMeilisearch\Connector\Facades\MeilisearchQuery;
-use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidOrdering;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidWhereBoolean;
 use Eelcol\LaravelMeilisearch\Tests\TestCase;
@@ -274,12 +273,29 @@ class MeilisearchQueryTest extends TestCase
                     && is_null($builder['page'])
                     && is_null($builder['perPage'])
                 ;
-
             })
             ->once();
 
         MeilisearchQuery::index('products')
             ->where('brand', '=', 'meilisearch')
             ->delete();
+    }
+
+    public function testAttributesToSearchOn()
+    {
+        Meilisearch::shouldReceive('searchDocuments')
+            ->withArgs(function ($args) {
+                $builder = $args->test();
+
+                return $builder['query'] == "Nike Air"
+                    && $builder['attributesToSearchOn'] == ['title', 'description']
+                    ;
+            })
+            ->once();
+
+        MeilisearchQuery::index('products')
+            ->search("Nike Air")
+            ->searchOnAttributes(['title', 'description'])
+            ->get();
     }
 }

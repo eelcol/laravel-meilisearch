@@ -170,6 +170,13 @@ $task = Meilisearch::deleteDocuments(index: 'products', ids: [1,2,3]);
 
 Documents can also be deleted using the query builder, see below.
 
+### Retrieve facet values
+You can retrieve all available values for a given facet. For example, the code below will search for all brands with the letter 'a' in it.
+
+```php
+$collection = Meilisearch::searchFacetValues(index: 'products', facetName: 'brand', facetQuery: 'a');
+```
+
 ### Use the query builder
 If you want to apply filtering or sorting, I recommend using the query builder. You can take a look in the tests folder to see some examples. A few simple examples are listed below.
 
@@ -295,7 +302,6 @@ MeilisearchQuery::index('products')
     ->get();
 ```
 
-
 ### Using facets
 Columns that are attributed as `filterable` can be used in facets. The querybuilder will return these facets with a product-count attached to it. The facets can be defined by using the `setFacets` or `addFacet` methods:
 
@@ -336,6 +342,20 @@ MeilisearchQuery::index('products')
 ```
 
 The query above is exactly the same as the other query! Remember: when deleting documents using the query builder, only filters will be applied. Limits, ordering and other manipulations will not be applied.
+
+### Specify which attributes to search on
+You can specify per query the attributes to search on. By default, a query searches on all attributes you have specified in the settings file. But if you want to search on another set of attributes, you can use the `searchOnAttributes` method. The attributes must be a subset of the attributes you are searching on by default.
+
+For example, when you have setup an index that searches on `title, description and brand` by default, you can make a query that only searches on the title:
+
+```php
+MeilisearchQuery::index('products')
+    ->search("Nike")
+    ->searchOnAttributes(['title'])
+    ->get();
+```
+
+This query only finds products with `Nike` in the title. If a product does not have `Nike` in the title, but in the `description`, the above query will *not* return this product.
 
 ### Disjunctive facets distribution
 

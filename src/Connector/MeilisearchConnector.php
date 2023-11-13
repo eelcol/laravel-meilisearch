@@ -3,6 +3,7 @@
 namespace Eelcol\LaravelMeilisearch\Connector;
 
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchDocumentsCollection;
+use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchFacetValuesCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchIndexCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchTasksCollection;
@@ -13,6 +14,7 @@ use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchMultiSearch;
 use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotFilterOnAttribute;
+use Eelcol\LaravelMeilisearch\Exceptions\CannotSearchOnAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotSortByAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\IncorrectMeilisearchKey;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexAlreadyExists;
@@ -313,12 +315,23 @@ class MeilisearchConnector
         );
     }
 
+    public function searchFacetValues(string $index, string $facetName, string $facetQuery): MeilisearchFacetValuesCollection
+    {
+        return new MeilisearchFacetValuesCollection(
+            $this->postRequest(
+                "indexes/" . $index . "/facet-search",
+                ['facetName' => $facetName, 'facetQuery' => $facetQuery]
+            )
+        );
+    }
+
     /**
      * @param MeilisearchQuery $query
      * @return MeilisearchQueryCollection
      * @throws NotEnoughDocumentsToOrderRandomly
      * @throws CannotFilterOnAttribute
      * @throws CannotSortByAttribute
+     * @throws CannotSearchOnAttribute
      */
     public function searchDocuments(MeilisearchQuery $query): MeilisearchQueryCollection
     {
@@ -359,6 +372,10 @@ class MeilisearchConnector
 
             if (preg_match("/Attribute `(.*)` is not sortable/", $message, $matches)) {
                 throw new CannotSortByAttribute($matches[1]);
+            }
+
+            if (preg_match("/Attribute `(.*)` is not searchable/", $message, $matches)) {
+                throw new CannotSearchOnAttribute($matches[1]);
             }
         }
 

@@ -32,6 +32,10 @@ class MeilisearchResponse implements ArrayAccess, IteratorAggregate, Countable
             $this->data = $this->data['results'];
         }
 
+        if (array_key_exists('facetHits', $this->data)) {
+            $this->data = $this->data['facetHits'];
+        }
+
         if (array_key_exists('message', $this->data) && array_key_exists('code', $this->data)) {
             $this->checkForErrors();
         }
