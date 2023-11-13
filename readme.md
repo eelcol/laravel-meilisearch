@@ -24,6 +24,7 @@ Determine which version you need based on the Meilisearch version:
 | 0.30                | ~2.0.0          |
 | 1.0.*               | ~2.0.0          |
 | 1.1.*               | ~2.1.0          |
+| 1.2.*               | ~2.2.0         |
 
 So for example, when using Meilisearch 1.0.2, use the following command:
 
