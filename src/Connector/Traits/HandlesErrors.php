@@ -28,6 +28,11 @@ trait HandlesErrors
         }
     }
 
+    public function hasError(): bool
+    {
+        return !is_null($this->getError());
+    }
+
     public function getError(): mixed
     {
         if (array_key_exists('message', $this->data) && array_key_exists('code', $this->data)) {

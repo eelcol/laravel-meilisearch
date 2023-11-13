@@ -153,11 +153,21 @@ Meilisearch::addDocuments('products', $products);
 ```
 
 ### Retrieve data
-Documents of an index can be retrieved using the `getDocuments` method. When you want to apply filters, the query builder can be used. The data is automaticly paginated.
+Documents of an index can be retrieved using the `getDocuments` method. When you want to apply filters, using the query builder is advised. The data is automaticly paginated.
 
 ```php
 $documents = Meilisearch::getDocuments('products');
 ```
+
+### Delete documents
+Documents can be deleted by ID using the `deleteDocument` or `deleteDocuments` methods. Both methods return a `MeilisearchTask` object.
+
+```php
+$task = Meilisearch::deleteDocument(index: 'products', id: 1);
+$task = Meilisearch::deleteDocuments(index: 'products', ids: [1,2,3]);
+```
+
+Documents can also be deleted using the query builder, see below.
 
 ### Use the query builder
 If you want to apply filtering or sorting, I recommend using the query builder. You can take a look in the tests folder to see some examples. A few simple examples are listed below.
@@ -269,6 +279,22 @@ MeilisearchQuery::index('products')
     ->get();
 ```
 
+#### Empty data
+`whereIsEmpty` or `whereNotEmpty` can be used to select documents that have empty values for the given attribute. This matches the following JSON values: `"", [], {}`.
+
+`whereNull` or `whereNotNull` can be used to select documents that have `NULL` values for the given attribute.
+
+```php
+MeilisearchQuery::index('products')
+    ->whereEmpty('brand')
+    ->get();
+
+MeilisearchQuery::index('products')
+    ->whereNull('brand')
+    ->get();
+```
+
+
 ### Using facets
 Columns that are attributed as `filterable` can be used in facets. The querybuilder will return these facets with a product-count attached to it. The facets can be defined by using the `setFacets` or `addFacet` methods:
 
@@ -287,6 +313,28 @@ MeilisearchQuery::index('products')
     ->addFacet('brand')
     ->get();
 ```
+
+### Delete documents using the querybuilder
+
+You can use filters on a query to delete documents. Other elements on the query, such as pagination or sorting will *not* be applied.
+
+```php
+MeilisearchQuery::index('products')
+    ->where('categories', '=', 'phones')
+    ->delete();
+```
+
+The query above will delete all products with the category `phones`.
+
+```php
+MeilisearchQuery::index('products')
+    ->where('categories', '=', 'phones')
+    ->orderBy('title')
+    ->limit(20)
+    ->delete();
+```
+
+The query above is exactly the same as the other query! Remember: when deleting documents using the query builder, only filters will be applied. Limits, ordering and other manipulations will not be applied.
 
 ### Disjunctive facets distribution
 

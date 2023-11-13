@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static MeilisearchDocument getDocument(string $index, int $id)
  * @method static MeilisearchTask deleteDocument(string $index, int $id)
  * @method static MeilisearchTask deleteDocuments(string $index, array $ids)
+ * @method static MeilisearchTask deleteFromQuery(MeilisearchQuery $query)
  * @method static MeilisearchQuery query(string $index)
  * @method static MeilisearchQueryCollection searchDocuments(MeilisearchQuery $query)
  * @method static MeilisearchQueryCollection multipleSearchDocuments(MeilisearchMultiSearch $search)

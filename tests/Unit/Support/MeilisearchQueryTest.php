@@ -2,7 +2,9 @@
 
 namespace Eelcol\LaravelMeilisearch\Tests\Unit\Support;
 
+use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
 use Eelcol\LaravelMeilisearch\Connector\Facades\MeilisearchQuery;
+use Eelcol\LaravelMeilisearch\Connector\MeilisearchConnector;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidOrdering;
 use Eelcol\LaravelMeilisearch\Exceptions\InvalidWhereBoolean;
 use Eelcol\LaravelMeilisearch\Tests\TestCase;
@@ -62,16 +64,37 @@ class MeilisearchQueryTest extends TestCase
             ->where('title', 'IN', ['iphone', 'galaxy', 'note'])
             ->getSearchFilters();
 
-        $this->assertEquals(["('title' = 'iphone' OR 'title' = 'galaxy' OR 'title' = 'note')"], $filters);
+        $this->assertEquals(["'title' IN ['iphone','galaxy','note']"], $filters);
 
         $filters = MeilisearchQuery::index('products')
             ->whereIn('title', ['iphone', 'galaxy', 'note'])
             ->getSearchFilters();
 
-        $this->assertEquals(["('title' = 'iphone' OR 'title' = 'galaxy' OR 'title' = 'note')"], $filters);
+        $this->assertEquals(["'title' IN ['iphone','galaxy','note']"], $filters);
 
         $filters = MeilisearchQuery::index('products')
             ->whereIn('title', [])
+            ->getSearchFilters();
+
+        $this->assertEquals([], $filters);
+    }
+
+    public function testWhereNotIn()
+    {
+        $filters = MeilisearchQuery::index('products')
+            ->where('title', 'NOT IN', ['iphone', 'galaxy', 'note'])
+            ->getSearchFilters();
+
+        $this->assertEquals(["'title' NOT IN ['iphone','galaxy','note']"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->whereNotIn('title', ['iphone', 'galaxy', 'note'])
+            ->getSearchFilters();
+
+        $this->assertEquals(["'title' NOT IN ['iphone','galaxy','note']"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->whereNotIn('title', [])
             ->getSearchFilters();
 
         $this->assertEquals([], $filters);
@@ -105,6 +128,60 @@ class MeilisearchQueryTest extends TestCase
             ->getSearchFilters();
 
         $this->assertEquals(["'available' = false"], $filters);
+    }
+
+    public function testWhereEmpty()
+    {
+        $filters = MeilisearchQuery::index('products')
+            ->whereIsEmpty('brand')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS EMPTY"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->whereNotEmpty('brand')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS NOT EMPTY"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->where('brand', 'IS EMPTY')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS EMPTY"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->where('brand', 'IS NOT EMPTY')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS NOT EMPTY"], $filters);
+    }
+
+    public function testWhereNull()
+    {
+        $filters = MeilisearchQuery::index('products')
+            ->whereNull('brand')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS NULL"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->whereNotNull('brand')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS NOT NULL"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->where('brand', 'IS NULL')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS NULL"], $filters);
+
+        $filters = MeilisearchQuery::index('products')
+            ->where('brand', 'IS NOT NULL')
+            ->getSearchFilters();
+
+        $this->assertEquals(["'brand' IS NOT NULL"], $filters);
     }
 
     public function testItThrowsAnExceptionWhenUsingIncorrectBoolean()
@@ -181,5 +258,28 @@ class MeilisearchQueryTest extends TestCase
 
         $this->assertEquals(["'category' = 'phones'", "('color' = 'black')"], $query->getSearchFilters());
         $this->assertEquals(["'category' = 'phones'"], $query->getSearchFiltersForMetadata());
+    }
+
+    public function testQueryDeletesDocuments()
+    {
+        Meilisearch::shouldReceive('deleteFromQuery')
+            ->withArgs(function ($args) {
+                $builder = $args->test();
+
+                return $builder['query'] == ""
+                    && $builder['filters'] == ["'brand' = 'meilisearch'"]
+                    && $builder['filters_for_metadata'] == ["'brand' = 'meilisearch'"]
+                    && $builder['ordering'] == []
+                    && $builder['facets'] == []
+                    && is_null($builder['page'])
+                    && is_null($builder['perPage'])
+                ;
+
+            })
+            ->once();
+
+        MeilisearchQuery::index('products')
+            ->where('brand', '=', 'meilisearch')
+            ->delete();
     }
 }

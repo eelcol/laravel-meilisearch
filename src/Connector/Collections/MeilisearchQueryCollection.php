@@ -74,7 +74,7 @@ class MeilisearchQueryCollection extends MeilisearchCollection
             return null;
         }
 
-        return $this->result->json('totalHits');
+        return $this->result->json('totalHits') ?? $this->result->json('estimatedTotalHits');
     }
 
     public function hasNextPage(): bool

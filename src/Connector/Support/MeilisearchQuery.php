@@ -5,6 +5,7 @@ namespace Eelcol\LaravelMeilisearch\Connector\Support;
 use Closure;
 use Eelcol\LaravelMeilisearch\Connector\Collections\MeilisearchQueryCollection;
 use Eelcol\LaravelMeilisearch\Connector\Facades\Meilisearch;
+use Eelcol\LaravelMeilisearch\Connector\Models\MeilisearchTask;
 use Eelcol\LaravelMeilisearch\Connector\Support\Parsers\ParseToOrderBy;
 use Eelcol\LaravelMeilisearch\Connector\Support\Parsers\ParseToSearchFilters;
 use Eelcol\LaravelMeilisearch\Enums\QueryOrderBy;
@@ -123,7 +124,10 @@ class MeilisearchQuery
             return $this;
         }
 
-        if (strtolower($operator) == "in" && !is_array($value)) {
+        if (
+            (strtolower($operator) == "in" || strtolower($operator) == "not in")
+            && !is_array($value)
+        ) {
             $value = Arr::wrap($value);
         }
 
@@ -170,6 +174,18 @@ class MeilisearchQuery
     }
 
     /**
+     * @throws InvalidWhereBoolean
+     */
+    public function whereNotIn(string $column, array $values): self
+    {
+        if (count($values) > 0) {
+            $this->where($column, 'NOT IN', $values);
+        }
+
+        return $this;
+    }
+
+    /**
      * @param string $column
      * @param array $values
      * @return $this
@@ -178,6 +194,64 @@ class MeilisearchQuery
     public function whereMatches(string $column, array $values): self
     {
         return $this->where($column, 'MATCHES', $values);
+    }
+
+    /**
+     * @param string $column
+     * @return $this
+     * IS EMPTY matches the following JSON values: "", [], {}
+     */
+    public function whereIsEmpty(string $column): self
+    {
+        $this->wheres[] = [
+            'column' => $column,
+            'operator' => 'IS EMPTY',
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @param string $column
+     * @return $this
+     * IS EMPTY matches the following JSON values: "", [], {}
+     */
+    public function whereNotEmpty(string $column): self
+    {
+        $this->wheres[] = [
+            'column' => $column,
+            'operator' => 'IS NOT EMPTY',
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @param string $column
+     * @return $this
+     */
+    public function whereNull(string $column): self
+    {
+        $this->wheres[] = [
+            'column' => $column,
+            'operator' => 'IS NULL',
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @param string $column
+     * @return $this
+     */
+    public function whereNotNUll(string $column): self
+    {
+        $this->wheres[] = [
+            'column' => $column,
+            'operator' => 'IS NOT NULL',
+        ];
+
+        return $this;
     }
 
     /**
@@ -388,6 +462,18 @@ class MeilisearchQuery
             ->createPaginator();
     }
 
+    /**
+     * @throws IndexNotSupplied
+     */
+    public function delete(): MeilisearchTask
+    {
+        if (empty($this->index)) {
+            throw new IndexNotSupplied();
+        }
+
+        return Meilisearch::deleteFromQuery($this);
+    }
+
     public function getMeilisearchDataForMetadataQueries(): array
     {
         /**
@@ -449,5 +535,18 @@ class MeilisearchQuery
             'page' => $this->getPage(),
             'perPage' => $this->getHitsPerPage(),
         ]);
+    }
+
+    public function test(): array
+    {
+        return [
+            'query' => $this->getSearchQuery(),
+            'filters' => $this->getSearchFilters(),
+            'filters_for_metadata' => $this->getSearchFiltersForMetadata(),
+            'ordering' => $this->getSearchOrdering(),
+            'facets' => $this->getFacetsDistribution(),
+            'page' => $this->getPage(),
+            'perPage' => $this->getHitsPerPage(),
+        ];
     }
 }

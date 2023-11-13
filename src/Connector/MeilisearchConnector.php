@@ -15,7 +15,10 @@ use Eelcol\LaravelMeilisearch\Connector\Support\MeilisearchQuery;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotFilterOnAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\CannotSortByAttribute;
 use Eelcol\LaravelMeilisearch\Exceptions\IncorrectMeilisearchKey;
+use Eelcol\LaravelMeilisearch\Exceptions\IndexAlreadyExists;
 use Eelcol\LaravelMeilisearch\Exceptions\IndexNotFound;
+use Eelcol\LaravelMeilisearch\Exceptions\InvalidParameterSupplied;
+use Eelcol\LaravelMeilisearch\Exceptions\MissingDocumentId;
 use Eelcol\LaravelMeilisearch\Exceptions\NoMeilisearchHostGiven;
 use Eelcol\LaravelMeilisearch\Exceptions\NotEnoughDocumentsToOrderRandomly;
 use Illuminate\Http\Client\PendingRequest;
@@ -26,20 +29,32 @@ class MeilisearchConnector
 {
     protected PendingRequest $http;
 
+    public function __construct(
+        protected array $connection_data
+    ) {
+        //
+    }
+
     /**
      * @throws NoMeilisearchHostGiven
      */
-    public function __construct(array $connection_data)
+    protected function connection(): PendingRequest
     {
-        if (!isset($connection_data['host'])) {
+        if (isset($this->http)) {
+            return $this->http;
+        }
+
+        if (!isset($this->connection_data['host'])) {
             throw new NoMeilisearchHostGiven();
         }
 
-        $this->http = Http::baseUrl($connection_data['host']);
+        $this->http = Http::baseUrl($this->connection_data['host']);
 
-        if (isset($connection_data['key']) && !empty($connection_data['key'])) {
-            $this->http->withToken($connection_data['key']);
+        if (isset($this->connection_data['key']) && !empty($this->connection_data['key'])) {
+            $this->http->withToken($this->connection_data['key']);
         }
+
+        return $this->http;
     }
 
     /**
@@ -50,7 +65,7 @@ class MeilisearchConnector
      */
     protected function request(string $path, array $query = []): MeilisearchResponse
     {
-        $response = $this->http->get($path, $query);
+        $response = $this->connection()->get($path, $query);
 
         if ($response->status() == 403) {
             throw new IncorrectMeilisearchKey("Incorrect Meilisearch key is given. Enter a blank string to not use a key.");
@@ -59,30 +74,50 @@ class MeilisearchConnector
         return new MeilisearchResponse($response);
     }
 
+    /**
+     * @throws MissingDocumentId
+     * @throws IndexNotFound
+     * @throws IndexAlreadyExists
+     */
     protected function postRequest(string $path, array $options = []): MeilisearchResponse
     {
-        $response = $this->http->post($path, $options);
+        $response = $this->connection()->post($path, $options);
 
         return new MeilisearchResponse($response);
     }
 
+    /**
+     * @throws MissingDocumentId
+     * @throws IndexAlreadyExists
+     * @throws IndexNotFound
+     */
     protected function putRequest(string $path, array $options = []): MeilisearchResponse
     {
-        $response = $this->http->put($path, $options);
+        $response = $this->connection()->put($path, $options);
 
         return new MeilisearchResponse($response);
     }
 
+    /**
+     * @throws MissingDocumentId
+     * @throws IndexNotFound
+     * @throws IndexAlreadyExists
+     */
     protected function patchRequest(string $path, array $options = []): MeilisearchResponse
     {
-        $response = $this->http->patch($path, $options);
+        $response = $this->connection()->patch($path, $options);
 
         return new MeilisearchResponse($response);
     }
 
+    /**
+     * @throws MissingDocumentId
+     * @throws IndexAlreadyExists
+     * @throws IndexNotFound
+     */
     protected function deleteRequest(string $path): MeilisearchResponse
     {
-        $response = $this->http->delete($path);
+        $response = $this->connection()->delete($path);
 
         return new MeilisearchResponse($response);
     }
@@ -218,12 +253,19 @@ class MeilisearchConnector
      * @param string $index
      * @param array<string, mixed> $query
      * @return MeilisearchDocumentsCollection
+     * @throws InvalidParameterSupplied
+     * @throws IndexNotFound
      */
     public function getDocuments(string $index, array $query = []): MeilisearchDocumentsCollection
     {
+        $response = $this->postRequest("indexes/" . $index . "/documents/fetch", $query);
+        if ($response->hasError()) {
+            throw new InvalidParameterSupplied($response->getErrorMessage());
+        }
+
         return new MeilisearchDocumentsCollection(
             $index,
-            $this->request("indexes/".$index."/documents", $query)
+            $response
         );
     }
 
@@ -257,6 +299,21 @@ class MeilisearchConnector
     }
 
     /**
+     * @throws MissingDocumentId
+     * @throws IndexNotFound
+     * @throws IndexAlreadyExists
+     */
+    public function deleteFromQuery(MeilisearchQuery $query): MeilisearchTask
+    {
+        return new MeilisearchTask(
+            $this->postRequest(
+                "indexes/" . $query->getIndex() . "/documents/delete",
+                ['filter' => $query->getSearchFilters()]
+            )
+        );
+    }
+
+    /**
      * @param MeilisearchQuery $query
      * @return MeilisearchQueryCollection
      * @throws NotEnoughDocumentsToOrderRandomly
@@ -283,14 +340,14 @@ class MeilisearchConnector
             // - the number of products for every size, for products that have a black color
             // this leads to 1 additional query for every filter used.
             // but it is all combined in a single request
-            $response = $this->http->post("multi-search", [
+            $response = $this->connection()->post("multi-search", [
                 'queries' => array_merge(
                     [['indexUid' => $query->getIndex()] + $query->getMeilisearchDataForMainQuery()],
                     $query->getMeilisearchDataForMetadataQueries()
                 )
             ]);
         } else {
-            $response = $this->http->post("indexes/" . $query->getIndex() . "/search", $query->getMeilisearchDataForMainQuery());
+            $response = $this->connection()->post("indexes/" . $query->getIndex() . "/search", $query->getMeilisearchDataForMainQuery());
         }
 
         if ($response->clientError()) {
@@ -310,7 +367,7 @@ class MeilisearchConnector
 
     public function multipleSearchDocuments(MeilisearchMultiSearch $search): MeilisearchQueryCollection
     {
-        $response = $this->http->post("multi-search", [
+        $response = $this->connection()->post("multi-search", [
             'queries' => $search->getQueryParam()
         ]);
 
@@ -326,7 +383,7 @@ class MeilisearchConnector
     {
         // first load the total number of documents in this index
         // applying the requested filters
-        $response = $this->http->post("indexes/".$query->getIndex()."/search", [
+        $response = $this->connection()->post("indexes/".$query->getIndex()."/search", [
             'q' => $query->getSearchQuery()
         ] + [
             'filter' => $query->getSearchFilters(),

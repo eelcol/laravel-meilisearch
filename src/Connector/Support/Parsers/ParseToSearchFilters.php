@@ -85,12 +85,12 @@ class ParseToSearchFilters
      */
     public function parseWhere(array $where): ?string
     {
-        if (isset($where['column']) && isset($where['operator']) && isset($where['value'])) {
+        if (isset($where['column']) && isset($where['operator'])) {
             if ($this->isColumnExcluded($where['column'])) {
                 return null;
             }
 
-            if (is_array($where['value'])) {
+            if (isset($where['value']) && is_array($where['value'])) {
                 return $this->parseWhereWithArrayValue($where);
             }
 
@@ -123,10 +123,13 @@ class ParseToSearchFilters
 
     protected function parseSimpleWhere(array $where): ?string
     {
-        $value = $this->escapeValue($where['value']);
-
         if ($this->isColumnExcluded($where['column'])) {
             return null;
+        }
+
+        $value = "";
+        if (isset($where['value'])) {
+            $value = $this->escapeValue($where['value']);
         }
 
         if ($this->inside_skip_for_facets) {
@@ -135,7 +138,7 @@ class ParseToSearchFilters
             $this->filter_columns[] = $where['column'];
         }
 
-        return "'".$where['column']."' {$where['operator']} ".$value;
+        return trim("'".$where['column']."' {$where['operator']} " . $value);
     }
 
     public function parseMultipleWheres(array $wheres): ?string
@@ -181,7 +184,12 @@ class ParseToSearchFilters
 
         if ($boolean == "OR") {
             // use the IN operator
-            $expression = "'" . $where['column'] . "' IN [";
+            $operator = "IN";
+            if (strtolower($where['operator']) == "not in") {
+                $operator = "NOT IN";
+            }
+
+            $expression = "'" . $where['column'] . "' " . $operator . " [";
             foreach ($where['value'] as $val) {
                 $value = $this->escapeValue($val);
                 $expression .= $value . ",";
